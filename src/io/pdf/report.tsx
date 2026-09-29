@@ -136,6 +136,10 @@ const s = StyleSheet.create({
   measureCol: { flex: 1, marginRight: 14, fontSize: 8.5 },
   issue: { flexDirection: "row", marginBottom: 3 },
   issueKind: { width: 44, fontSize: 8 },
+  pageTitle: { fontFamily: "Helvetica-Bold", fontSize: 16, marginBottom: 8 },
+  signoffSummary: { flexDirection: "row", borderTopWidth: HAIRLINE, borderBottomWidth: HAIRLINE, borderColor: LINE, paddingVertical: 8, marginVertical: 14 },
+  signBlock: { borderBottomWidth: HAIRLINE, borderBottomColor: LINE, paddingVertical: 14 },
+  signField: { borderBottomWidth: 0.75, borderBottomColor: INK, minHeight: 22, justifyContent: "flex-end", paddingBottom: 3, marginBottom: 3 },
   sigLine: { borderBottomWidth: HAIRLINE, borderBottomColor: INK, height: 18 },
   mono: { fontFamily: "Courier", fontSize: 8 },
   footer: {
@@ -469,21 +473,25 @@ function ReasoningPage({ ctx }: { ctx: ReportContext }) {
   );
 }
 
-const SIGNOFF_COLS = ["20%", "34%", "18%", "28%"];
-
-/** Sign-off row for the printed report; empty fields are filled in by hand. */
-function SignoffRow({ role, name, date }: { role: string; name?: string; date?: string }) {
+/** One sign-off with generous space for handwriting. */
+function SignoffBlock({ role, hint, name, date }: { role: string; hint: string; name?: string; date?: string }) {
+  const field = (label: string, value?: string, flex = 1) => (
+    <View style={{ flex, marginRight: 12 }}>
+      <View style={s.signField}>{value ? <Text>{value}</Text> : null}</View>
+      <Text style={s.small}>{label}</Text>
+    </View>
+  );
   return (
-    <View style={[s.tr, { alignItems: "flex-end", paddingVertical: 3 }]} wrap={false}>
-      <Text style={[s.cell, { width: SIGNOFF_COLS[0] }]}>{role}</Text>
-      <View style={[s.cell, { width: SIGNOFF_COLS[1] }]}>
-        {name ? <Text>{name}</Text> : <View style={s.sigLine} />}
+    <View style={s.signBlock} wrap={false}>
+      <Text style={s.h3}>{role}</Text>
+      <Text style={[s.small, { marginBottom: 14 }]}>{hint}</Text>
+      <View style={{ flexDirection: "row" }}>
+        {field("Name", name, 1.3)}
+        {field("Funktion")}
       </View>
-      <View style={[s.cell, { width: SIGNOFF_COLS[2] }]}>
-        {date ? <Text>{date}</Text> : <View style={s.sigLine} />}
-      </View>
-      <View style={[s.cell, { width: SIGNOFF_COLS[3] }]}>
-        <View style={s.sigLine} />
+      <View style={{ flexDirection: "row", marginTop: 16 }}>
+        {field("Ort, Datum", date, 1)}
+        {field("Unterschrift", undefined, 1.3)}
       </View>
     </View>
   );
@@ -496,8 +504,8 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
   const high = GOALS.map((g) => goalResult(version, g)).filter((r) => r.effective !== null && r.effective >= 2);
   return (
     <>
-      <View>
-        <Text style={s.h2} minPresenceAhead={60}>
+      <View break>
+        <Text style={[s.h2, { marginTop: 0 }]} minPresenceAhead={60}>
           Nächste Schritte
         </Text>
         {nextSteps(version).map((step, i) => (
@@ -534,57 +542,88 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
         </View>
       )}
 
-      <Text style={s.h2} minPresenceAhead={80}>
-        Freigabe
-      </Text>
-      <View style={s.th}>
-        {["Rolle", "Name", "Datum", "Unterschrift"].map((h, i) => (
-          <Text key={h} style={[s.cell, { width: SIGNOFF_COLS[i] }]}>
-            {h}
-          </Text>
-        ))}
-      </View>
-      <SignoffRow role="Erstellt" name={version.createdBy} date={fmtDate(version.createdAt)} />
-      <SignoffRow role="Geprüft" />
-      <SignoffRow role="Freigegeben" />
-
-      <Text style={s.h2} minPresenceAhead={40}>
-        Änderungshistorie
-      </Text>
-      <View style={s.th}>
-        <Text style={[s.cell, { width: "12%" }]}>Version</Text>
-        <Text style={[s.cell, { width: "14%" }]}>Datum</Text>
-        <Text style={[s.cell, { width: "35%" }]}>Beschreibung</Text>
-        <Text style={[s.cell, { width: "22%" }]}>Bearbeitet von</Text>
-        <Text style={[s.cell, { width: "17%" }]}>Status</Text>
-      </View>
-      {rows.map((h) => {
-        const current = h.id === version.id;
-        const font = { fontFamily: current ? "Helvetica-Bold" : "Helvetica" };
-        return (
-          <View key={h.id} style={s.tr} wrap={false}>
-            <Text style={[s.cell, { width: "12%" }, font]}>{versionLabel(h)}</Text>
-            <Text style={[s.cell, { width: "14%" }]}>{fmtDate(h.closedAt ?? h.createdAt)}</Text>
-            <Text style={[s.cell, { width: "35%" }]}>{h.changeSummary || "–"}</Text>
-            <Text style={[s.cell, { width: "22%" }]}>{h.closedBy ?? h.createdBy}</Text>
-            <Text style={[s.cell, { width: "17%" }]}>{STATUS_LABEL[h.status]}</Text>
-          </View>
-        );
-      })}
-      {rows.length === 0 && (
-        <View style={s.tr}>
-          <Text style={[s.cell, s.muted]}>Keine Historie vorhanden.</Text>
-        </View>
-      )}
-
-      <View wrap={false} style={{ marginTop: 6, borderTopWidth: HAIRLINE, borderTopColor: LINE, paddingTop: 4 }}>
-        <Text style={s.small}>
-          Methode nach BSI-Standard 200-2 (Maximumprinzip; Sondereffekte als begründete Übersteuerung). Schema:{" "}
-          {describeScheme(version.scheme)} Versions-ID <Text style={s.mono}>{version.id}</Text>.
+      {/* Sign-off: own page, so it does not get lost at the end of the report. */}
+      <View break>
+        <Text style={s.pageTitle}>Freigabe</Text>
+        <Text style={s.para}>
+          Mit ihrer Unterschrift bestätigen die Beteiligten, dass die Schutzbedarfsfeststellung für „
+          {version.meta.name || "Unbenanntes Asset"}“, Version {versionLabel(version)}, vollständig ist und die Einstufungen
+          nachvollziehbar begründet sind.
         </Text>
-        <Text style={[s.small, { marginTop: 2 }]}>
-          Erstellt mit der Kopexa Schutzbedarfsanalyse (schutzbedarf.kopexa.com), einem kostenlosen Hilfsmittel ohne Gewähr. Kein
-          Ersatz für Rechts-, Datenschutz- oder Auditberatung; Einstufung und Begründung verantwortet die anwendende Organisation.
+        <View style={s.signoffSummary}>
+          {GOALS.map((g) => {
+            const r = goalResult(version, g);
+            return (
+              <View key={g} style={{ flex: 1 }}>
+                <Text style={s.small}>{GOAL_LABEL[g]}</Text>
+                <LevelMark level={r.effective} size={11} bold />
+              </View>
+            );
+          })}
+        </View>
+        <SignoffBlock
+          role="Erstellt"
+          hint="Ersteller:in der Analyse"
+          name={version.createdBy.replace(/\s*<.*>$/, "")}
+          date={fmtDate(version.createdAt)}
+        />
+        <SignoffBlock role="Geprüft" hint="z. B. Informationssicherheitsbeauftragte:r, Datenschutzbeauftragte:r" />
+        <SignoffBlock role="Freigegeben" hint="z. B. Asset-Owner, CISO oder Geschäftsleitung" />
+      </View>
+
+      {/* Appendix: history, method and notes. */}
+      <View break>
+        <Text style={s.pageTitle}>Anhang</Text>
+        <Text style={s.h2} minPresenceAhead={40}>
+          Änderungshistorie
+        </Text>
+        <View style={s.th}>
+          <Text style={[s.cell, { width: "12%" }]}>Version</Text>
+          <Text style={[s.cell, { width: "14%" }]}>Datum</Text>
+          <Text style={[s.cell, { width: "35%" }]}>Beschreibung</Text>
+          <Text style={[s.cell, { width: "22%" }]}>Bearbeitet von</Text>
+          <Text style={[s.cell, { width: "17%" }]}>Status</Text>
+        </View>
+        {rows.map((h) => {
+          const current = h.id === version.id;
+          const font = { fontFamily: current ? "Helvetica-Bold" : "Helvetica" };
+          return (
+            <View key={h.id} style={s.tr} wrap={false}>
+              <Text style={[s.cell, { width: "12%" }, font]}>{versionLabel(h)}</Text>
+              <Text style={[s.cell, { width: "14%" }]}>{fmtDate(h.closedAt ?? h.createdAt)}</Text>
+              <Text style={[s.cell, { width: "35%" }]}>{h.changeSummary || "–"}</Text>
+              <Text style={[s.cell, { width: "22%" }]}>{h.closedBy ?? h.createdBy}</Text>
+              <Text style={[s.cell, { width: "17%" }]}>{STATUS_LABEL[h.status]}</Text>
+            </View>
+          );
+        })}
+        {rows.length === 0 && (
+          <View style={s.tr}>
+            <Text style={[s.cell, s.muted]}>Keine Historie vorhanden.</Text>
+          </View>
+        )}
+
+        <Text style={s.h2} minPresenceAhead={40}>
+          Methode
+        </Text>
+        <Text style={s.para}>
+          Der Schutzbedarf wird je Grundwert (Vertraulichkeit, Integrität, Verfügbarkeit) anhand standardisierter
+          Schadensszenarien nach BSI-Standard 200-2 bzw. ISO/IEC 27001 ermittelt. Es gilt das Maximumprinzip: Der Schutzbedarf
+          eines Grundwerts entspricht dem höchsten Einzelschaden. Kumulations-, Verteilungs- und Vererbungseffekte werden als
+          begründete Übersteuerung dokumentiert.
+        </Text>
+        <Text style={s.para}>Bewertungsschema: {describeScheme(version.scheme)}</Text>
+        <Text style={s.small}>
+          Versions-ID <Text style={s.mono}>{version.id}</Text>
+        </Text>
+
+        <Text style={s.h2} minPresenceAhead={40}>
+          Hinweise
+        </Text>
+        <Text style={s.muted}>
+          Erstellt mit der Kopexa Schutzbedarfsanalyse (schutzbedarf.kopexa.com), einem kostenlosen Hilfsmittel ohne Gewähr. Sie
+          ersetzt keine Rechts-, Datenschutz- oder Auditberatung; Einstufung, Begründung und abgeleitete Maßnahmen verantwortet
+          die anwendende Organisation.
         </Text>
       </View>
     </>
