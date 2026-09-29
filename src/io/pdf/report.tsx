@@ -291,17 +291,15 @@ function Frame({ ctx, children }: { ctx: ReportContext; children: ReactNode }) {
       )}
       {children}
       <View style={s.footer} fixed>
+        <Text>{ctx.fingerprint ? `Prüfsumme ${shortFingerprint(ctx.fingerprint)}` : ""}</Text>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           {ctx.preparedBy?.logo && <Image src={ctx.preparedBy.logo} style={{ height: 9, marginRight: 5 }} />}
-          <Text>
-            {ctx.preparedBy ? `Erstellt durch ${ctx.preparedBy.name} · ` : ""}schutzbedarf.kopexa.com
-          </Text>
+          <Text
+            render={({ pageNumber, totalPages }) =>
+              `${ctx.preparedBy ? `Erstellt durch ${ctx.preparedBy.name} · ` : ""}schutzbedarf.kopexa.com · Seite ${pageNumber} von ${totalPages} · ${fmtDate(ctx.generatedAt.toISOString())}`
+            }
+          />
         </View>
-        <Text
-          render={({ pageNumber, totalPages }) =>
-            `${ctx.fingerprint ? `Prüfsumme ${shortFingerprint(ctx.fingerprint)} · ` : ""}Seite ${pageNumber} von ${totalPages} · erstellt am ${fmtDate(ctx.generatedAt.toISOString())}`
-          }
-        />
       </View>
     </Page>
   );
