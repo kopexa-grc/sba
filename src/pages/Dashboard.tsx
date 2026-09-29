@@ -1,9 +1,11 @@
 import { Search } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAssetList, type AssetRow } from "../app/data";
-import { exportJson, pickFile } from "../app/files";
+import { exportBackup, pickFile } from "../app/files";
 import { useSession } from "../app/session";
+import { ImportBundleDialog } from "../components/ImportBundle";
 import { ImportXlsxDialog } from "../components/ImportXlsx";
 import { StatusText } from "../components/StatusBadge";
 import { TriadMarks } from "../components/level";
@@ -23,6 +25,7 @@ export function Dashboard() {
   const [xlsxOpen, setXlsxOpen] = useState(false);
   const [bundle, setBundle] = useState<ParsedBundle | null>(null);
   const { actor, notify, guard } = useSession();
+  const lastBackup = useLiveQuery(() => repo.lastBackupAt());
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -45,6 +48,10 @@ export function Dashboard() {
   }
 
   if (rows === undefined) return null;
+  const backupDue =
+    rows.length > 0 &&
+    lastBackup !== undefined &&
+    (lastBackup === null || Date.now() - new Date(lastBackup).getTime() > 30 * 24 * 3600 * 1000);
 
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
@@ -60,13 +67,23 @@ export function Dashboard() {
             Excel importieren
           </Button>
           <Button onClick={openBundle}>
-            Sicherung einlesen
+            Datei einlesen
           </Button>
           <Button variant="primary" onClick={() => setCreating(true)}>
             Neue Analyse
           </Button>
         </div>
       </div>
+
+      {backupDue && (
+        <Notice tone="warning" className="mt-6">
+          {lastBackup ? `Letzte Sicherung am ${formatDate(lastBackup)}.` : "Noch keine Sicherung."} Ihre Analysen liegen nur in
+          diesem Browser.{" "}
+          <button type="button" className="text-primary-700 hover:underline" onClick={() => guard(() => exportBackup(actor))}>
+            Jetzt sichern
+          </button>
+        </Notice>
+      )}
 
       {rows.length === 0 ? (
         <div className="mt-6">
@@ -120,7 +137,7 @@ export function Dashboard() {
               size="sm"
               variant="ghost"
               className="ml-auto"
-              onClick={() => guard(() => exportJson(undefined, actor, `SBA_Sicherung_${new Date().toISOString().slice(0, 10)}`))}
+              onClick={() => guard(() => exportBackup(actor))}
             >
               Alle sichern
             </Button>
@@ -131,7 +148,7 @@ export function Dashboard() {
 
       <NewAssetDialog open={creating} onClose={() => setCreating(false)} />
       <ImportXlsxDialog open={xlsxOpen} onClose={() => setXlsxOpen(false)} />
-      <BundleDialog bundle={bundle} onClose={() => setBundle(null)} />
+      <ImportBundleDialog bundle={bundle} onClose={() => setBundle(null)} />
     </div>
   );
 }
@@ -170,8 +187,8 @@ function AssetTable({ rows }: { rows: AssetRow[] }) {
                 </td>
                 <td className="px-3 py-3 align-top whitespace-nowrap">
                   <span className="tabular">{versionLabel(v)}</span> <StatusText status={v.status} className="text-muted" />
-                  {r.approved && r.approved.id !== v.id && (
-                    <div className="text-[12.5px] text-muted tabular">gültig: {versionLabel(r.approved)}</div>
+                  {r.lastFinal && r.lastFinal.id !== v.id && (
+                    <div className="text-[12.5px] text-muted tabular">abgeschlossen: {versionLabel(r.lastFinal)}</div>
                   )}
                 </td>
                 <td className="px-3 py-3 text-right align-top text-muted tabular">
@@ -252,65 +269,6 @@ function NewAssetDialog({ open, onClose }: { open: boolean; onClose: () => void 
         </div>
         <button type="submit" hidden />
       </form>
-    </Dialog>
-  );
-}
-
-function BundleDialog({ bundle, onClose }: { bundle: ParsedBundle | null; onClose: () => void }) {
-  const { notify, guard } = useSession();
-  const versions = bundle?.records.reduce((n, r) => n + r.versions.length, 0) ?? 0;
-  return (
-    <Dialog
-      open={!!bundle}
-      onClose={onClose}
-      title="Sicherung einlesen"
-      description="Vorhandene Analysen und Versionen mit gleicher Kennung werden nicht überschrieben."
-      footer={
-        <>
-          <Button onClick={onClose}>Abbrechen</Button>
-          <Button
-            variant="primary"
-            onClick={async () => {
-              if (!bundle) return;
-              const res = await guard(() => repo.importRecords(bundle.records));
-              if (!res) return;
-              onClose();
-              notify(
-                `${res.assets} Analysen und ${res.versions} Versionen übernommen${res.skipped ? `, ${res.skipped} bereits vorhanden` : ""}.`,
-              );
-            }}
-          >
-            Übernehmen
-          </Button>
-        </>
-      }
-    >
-      {bundle && (
-        <div className="grid gap-3 text-[13.5px]">
-          <p>
-            Die Datei enthält <strong>{bundle.records.length} Analysen</strong> mit insgesamt <strong>{versions} Versionen</strong>{" "}
-            samt Audit-Trail.
-          </p>
-          <ul className="max-h-48 divide-y divide-line overflow-y-auto border-y border-line">
-            {bundle.records.map((r) => {
-              const last = r.versions[r.versions.length - 1];
-              return (
-                <li key={r.asset.id} className="flex items-center justify-between gap-3 py-2">
-                  <span className="truncate">{last?.meta.name || "Unbenannt"}</span>
-                  <span className="text-[12px] text-muted tabular">{r.versions.length} Version(en)</span>
-                </li>
-              );
-            })}
-          </ul>
-          {bundle.tampered.length > 0 && (
-            <Notice tone="error">
-              Bei {bundle.tampered.length} freigegebenen Version(en) stimmt der Inhalt nicht mit
-              dem Freigabe-Siegel überein ({bundle.tampered.map((t) => t.name || "Unbenannt").join(", ")}). Die Datei wurde
-              nach der Freigabe verändert. Die Versionen werden übernommen und als verletzt angezeigt.
-            </Notice>
-          )}
-        </div>
-      )}
     </Dialog>
   );
 }

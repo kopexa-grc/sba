@@ -12,12 +12,8 @@ import { actorName, formatDateTime } from "../lib/format";
 export const ACTION_LABEL: Record<AuditAction, string> = {
   create: "Angelegt",
   update: "Geändert",
-  submit: "Eingereicht",
-  reject: "Zurückgewiesen",
-  approve: "Freigegeben und versiegelt",
+  close: "Abgeschlossen",
   branch: "Neue Version",
-  supersede: "Abgelöst",
-  archive: "Archiviert",
   import: "Importiert",
   "delete-draft": "Entwurf verworfen",
 };
@@ -37,7 +33,7 @@ export function HistoryStep({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-10">
       <div>
-        <h2 className="text-[20px] font-semibold">Historie &amp; Audit-Trail</h2>
+        <h2 className="text-[20px] font-semibold">Historie &amp; Änderungsprotokoll</h2>
         <p className="mt-0.5 text-[14px] text-muted">
           Jede Änderung mit Zeitpunkt (UTC), Akteur, altem und neuem Wert sowie Grund. Einträge lassen sich nicht ändern.
         </p>
@@ -61,9 +57,11 @@ export function HistoryStep({
                   <span className="mt-0.5 flex flex-wrap gap-x-1.5 text-[12.5px] text-muted">
                     <StatusText status={v.status} />
                     <span>· erstellt {formatDateTime(v.createdAt)}, {actorName(v.createdBy)}</span>
-                    {v.approved && <span>· freigegeben {formatDateTime(v.approved.at)}, {actorName(v.approved.by)}</span>}
+                    {v.closedAt && <span>· abgeschlossen {formatDateTime(v.closedAt)}, {actorName(v.closedBy ?? "")}</span>}
                   </span>
-                  {v.hash && <span className="mt-0.5 block truncate font-mono text-[11.5px] text-muted">SHA-256 {v.hash}</span>}
+                  <span className="mt-0.5 block text-[12.5px] text-muted">
+                    Bewertungsschema: {v.scheme.name} (Stand {v.scheme.revision})
+                  </span>
                 </span>
                 <TriadMarks results={allResults(v)} />
               </Link>
@@ -93,11 +91,11 @@ function AuditTable({ audit }: { audit: AuditEntry[] }) {
     <section>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <h3 className="mr-auto text-[15px] font-semibold">
-          Audit-Trail <span className="font-normal text-muted tabular">{rows.length}</span>
+          Änderungsprotokoll <span className="font-normal text-muted tabular">{rows.length}</span>
         </h3>
         <div className="relative w-full sm:w-56">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Suchen" className="pl-8" aria-label="Audit-Trail durchsuchen" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Suchen" className="pl-8" aria-label="Änderungsprotokoll durchsuchen" />
         </div>
         <Select value={action} onChange={(e) => setAction(e.target.value as AuditAction | "all")} className="w-auto" aria-label="Aktion">
           <option value="all">Alle Aktionen</option>

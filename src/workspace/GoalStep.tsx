@@ -1,8 +1,8 @@
 import { useId } from "react";
 import { LevelBars, LevelMark } from "../components/level";
 import { Field, Segmented, cn } from "../components/ui";
-import { CATALOG, type ScenarioDef } from "../domain/catalog";
-import { DEFINITIONS } from "../domain/definitions";
+import type { ScenarioDef } from "../domain/catalog";
+import { catalogFor, definitionsFor } from "../domain/scheme";
 import { goalResult, scenarioLevel } from "../domain/scoring";
 import { GOAL_EN, GOAL_LABEL, GOAL_SHORT, LEVEL_LABEL, type Goal, type ScenarioAnswer } from "../domain/types";
 import { emptyAnswer } from "../domain/versioning";
@@ -16,7 +16,7 @@ const GOAL_QUESTION: Record<Goal, string> = {
 
 export function GoalStep({ goal }: { goal: Goal }) {
   const { version } = useEditor();
-  const def = CATALOG[goal];
+  const def = catalogFor(version.scheme)[goal];
   const r = goalResult(version, goal);
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
@@ -54,7 +54,7 @@ function ScenarioCard({ goal, def, index, isDriver }: { goal: Goal; def: Scenari
   const answer = version.answers[goal][def.id] ?? emptyAnswer();
   const level = scenarioLevel(answer);
   const groupId = useId();
-  const definition = DEFINITIONS.find((d) => d.scenario === def.id);
+  const definition = definitionsFor(version.scheme).find((d) => d.scenario === def.id);
   const needsExplanation = level !== null && level >= 2;
 
   const set = (patch: Partial<ScenarioAnswer>) =>

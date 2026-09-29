@@ -7,12 +7,16 @@ Nachfolger des Excel-Bogens `FS_Schutzbedarfsanalyse_neu.xlsx`.
 
 - Geführter Wizard: Asset & Scope → Vertraulichkeit → Integrität → Verfügbarkeit → Ergebnis
 - Maximumprinzip live, Sondereffekte (Kumulation, Verteilung, Vererbung) als begründete Übersteuerung
-- Begründungspflicht für „Hoch“ und „Sehr hoch“, Plausibilitätsprüfung vor dem Einreichen
-- Workflow Entwurf → In Prüfung → Freigegeben; Freigabe versiegelt die Version mit SHA-256
-- Versionierung (Minor/Major), feldgenauer Audit-Trail mit Änderungsgrund, visueller Versionsvergleich
+- Begründungspflicht für „Hoch“ und „Sehr hoch“, Plausibilitätsprüfung vor dem Abschließen
+- Versionen: in Bearbeitung → abgeschlossen (schreibgeschützt) → neue Version; feldgenaues Änderungsprotokoll mit
+  Änderungsgrund, visueller Versionsvergleich
+- Konfigurierbares Bewertungsschema (Euro-Schwellen, tolerierbare Ausfallzeiten) – jede Version speichert ihren
+  Schema-Stand; Organisation mit Logo; eigene Maßnahmenvorschläge
 - XLSX-Import des Legacy-Bogens (inkl. Zeilenzuordnung und Auflösung von „Eingabe prüfen!“-Widersprüchen)
-- XLSX-Prüfbericht (Deckblatt, Anwendung mit Originalformeln, Audit-Trail, Definitionen), PDF-Executive-Report,
-  JSON-Sicherung (`.sba.json`, schema-versioniert)
+- XLSX-Prüfbericht (Deckblatt, Anwendung mit Originalformeln, Änderungsprotokoll, Definitionen), PDF-Bericht mit
+  Unterschriftenfeldern zum Ausdrucken
+- Ein Dateiformat (`.sba.json`, schema-versioniert) für Sicherung, geteilte Einstellungen und einzelne Analysen;
+  ältere Dateien werden beim Einlesen migriert
 - Offline-first: alle Daten in IndexedDB, keine Serverkommunikation, installierbar
 
 ## Entwicklung
@@ -41,8 +45,9 @@ pnpm build      # dist/ inkl. Service Worker und 404.html (SPA-Fallback für Git
 - Wie im Referenzbogen wird „Beeinträchtigung der persönlichen Unversehrtheit“ für Vertraulichkeit nicht bewertet
   (17 statt 18 Szenarien).
 - Die Frage zu Leib & Leben bei Verfügbarkeit ist sprachlich auf Ausfall statt Manipulation korrigiert (im Excel kopiert).
-- Eine neue Version löst die bisher freigegebene erst bei ihrer eigenen Freigabe ab; bis dahin bleibt die alte gültig.
-- Änderungsgründe sind Pflicht, wenn sich eine bestehende Einstufung ändert – auch gegenüber der freigegebenen Vorversion.
+- Keine Freigabe durch Dritte: Die App ist ein Einzelplatz-Werkzeug (Marketing, ohne Kopexa-Konto). Formelle Freigaben
+  erfolgen per Unterschrift auf dem PDF oder in der Kopexa-Plattform.
+- Änderungsgründe sind Pflicht, wenn sich eine bestehende Einstufung ändert – auch gegenüber der abgeschlossenen Vorversion.
 
 ## Deployment
 

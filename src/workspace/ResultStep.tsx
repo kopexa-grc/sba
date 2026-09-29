@@ -3,7 +3,8 @@ import { Link } from "react-router";
 import { LevelMark } from "../components/level";
 import { Field, Select, cn } from "../components/ui";
 import { SCENARIO_SHORT } from "../domain/catalog";
-import { MEASURES } from "../domain/measures";
+import { useSettings } from "../app/data";
+import { DEFAULT_MEASURES } from "../domain/scheme";
 import { goalResult, validate, type Issue } from "../domain/scoring";
 import { GOALS, GOAL_EN, GOAL_LABEL, LEVEL_LABEL, OVERRIDE_KIND_LABEL, type Goal, type OverrideKind } from "../domain/types";
 import { CommitInput, useEditor } from "./editor";
@@ -35,7 +36,8 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
   const r = goalResult(version, goal);
   const override = version.overrides[goal];
   const needsJustification = r.effective !== null && r.effective >= 2;
-  const measures = r.effective === 3 ? [...MEASURES[goal][2], ...MEASURES[goal][3]] : r.effective === 2 ? MEASURES[goal][2] : [];
+  const catalog = useSettings()?.measures ?? DEFAULT_MEASURES;
+  const measures = r.effective === 3 ? [...catalog[goal][2], ...catalog[goal][3]] : r.effective === 2 ? catalog[goal][2] : [];
 
   return (
     <section className="grid gap-5 border-t border-line pt-8 first-of-type:border-t-0 first-of-type:pt-0">

@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
-import { CATALOG, SCENARIO_TITLE } from "../../domain/catalog";
-import { DEFINITIONS } from "../../domain/definitions";
+import { SCENARIO_TITLE, type GoalDef } from "../../domain/catalog";
+import { catalogFor, definitionsFor, describeScheme, type Settings } from "../../domain/scheme";
 import { goalResult } from "../../domain/scoring";
 import {
   ASSET_TYPE_LABEL,
@@ -34,6 +34,7 @@ import {
   EXTRA_LABEL,
   LEGACY_STATUS,
   OVERRIDE_LABEL,
+  STATUS_OPTIONS,
   OVERRIDE_ROW,
   SHEET,
 } from "./layout";
@@ -43,14 +44,10 @@ type Sheet = ExcelJS.Worksheet;
 const FONT = "Calibri";
 
 const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
-  create: "Erstellt",
+  create: "Angelegt",
   update: "Geändert",
-  submit: "Zur Prüfung eingereicht",
-  reject: "Zurückgewiesen",
-  approve: "Freigegeben",
-  branch: "Neue Version angelegt",
-  supersede: "Abgelöst",
-  archive: "Archiviert",
+  close: "Abgeschlossen",
+  branch: "Neue Version",
   import: "Importiert",
   "delete-draft": "Entwurf verworfen",
 };
@@ -110,7 +107,13 @@ function overrideText(v: AssessmentVersion, goal: Goal): string {
   return o ? `\n\n${OVERRIDE_LABEL} auf „${LEVEL_LABEL[o.level]}“ (${OVERRIDE_KIND_LABEL[o.kind]}): ${o.reason}` : "";
 }
 
-function buildCover(wb: ExcelJS.Workbook, v: AssessmentVersion, history: AssessmentVersion[]) {
+function buildCover(
+  wb: ExcelJS.Workbook,
+  v: AssessmentVersion,
+  history: AssessmentVersion[],
+  catalog: Record<Goal, GoalDef>,
+  settings?: Settings,
+) {
   const ws = wb.addWorksheet(SHEET.cover, {
     pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
     views: [{ showGridLines: false }],
@@ -150,20 +153,21 @@ function buildCover(wb: ExcelJS.Workbook, v: AssessmentVersion, history: Assessm
   ws.getCell(COVER.status).dataValidation = {
     type: "list",
     allowBlank: true,
-    formulae: ['"<bitte auswählen>,in Bearbeitung,fachlich freigegeben,freigegeben"'],
+    formulae: [`"${STATUS_OPTIONS.join(",")}"`],
   };
   label("A11", "zuletzt bearbeitet am:");
   value(COVER.editedAt, toDate(v.updatedAt), date);
   label("F11", "von:");
   value(COVER.editedBy, v.updatedBy);
   label("A12", "fachlich freigegeben am:");
-  value(COVER.submittedAt, toDate(v.submitted?.at), date);
+  // Left empty for a manual sign-off on the printout (the app has no approval workflow).
+  value(COVER.submittedAt, null, date);
   label("F12", "von:");
-  value(COVER.submittedBy, v.submitted?.by ?? null);
+  value(COVER.submittedBy, null);
   label("A13", "freigegeben am:");
-  value(COVER.approvedAt, toDate(v.approved?.at), date);
+  value(COVER.approvedAt, null, date);
   label("F13", "von:");
-  value(COVER.approvedBy, v.approved?.by ?? null);
+  value(COVER.approvedBy, null);
   label("A15", "Verantwortliche Organisationseinheit:");
   value(COVER.orgUnit, v.meta.orgUnit);
   label("A16", "Kontakt:");
@@ -196,8 +200,8 @@ function buildCover(wb: ExcelJS.Workbook, v: AssessmentVersion, history: Assessm
     const lvl = ws.getCell(`D${row}`);
     const ovr = `Anwendung!E${OVERRIDE_ROW[goal]}`;
     lvl.value = {
-      formula: `IF(${ovr}<>"",${ovr},Anwendung!E${CATALOG[goal].headerRow})`,
-      result: r.override ? LEVEL_LABEL[r.override.level] : legacyGoalResult(v, goal),
+      formula: `IF(${ovr}<>"",${ovr},Anwendung!E${catalog[goal].headerRow})`,
+      result: r.override ? LEVEL_LABEL[r.override.level] : legacyGoalResult(v, goal, catalog),
     };
     style(lvl, { bold: true, size: 11 });
     lvl.alignment = { vertical: "middle", horizontal: "center" };
@@ -238,9 +242,9 @@ function buildCover(wb: ExcelJS.Workbook, v: AssessmentVersion, history: Assessm
     const cells: [string, ExcelJS.CellValue][] = [
       ["A", i + 1],
       ["B", h ? versionLabel(h) : null],
-      ["D", h ? toDate(h.approved?.at ?? h.updatedAt) : null],
+      ["D", h ? toDate(h.closedAt ?? h.updatedAt) : null],
       ["F", h ? h.changeSummary : null],
-      ["I", h ? (h.approved?.by ?? h.updatedBy) : null],
+      ["I", h ? (h.closedBy ?? h.updatedBy) : null],
     ];
     for (const [col, val] of cells) {
       const c = ws.getCell(`${col}${row}`);
@@ -257,7 +261,7 @@ function buildCover(wb: ExcelJS.Workbook, v: AssessmentVersion, history: Assessm
   const extra = ws.getCell(`A${row}`);
   extra.value = EXTRA_BLOCK_TITLE;
   header(extra);
-  const approval = v.approved ? `${v.approved.by}, ${new Date(v.approved.at).toISOString()}` : "noch nicht freigegeben";
+  const closed = v.closedAt ? `${new Date(v.closedAt).toISOString()}, ${v.closedBy ?? ""}`.replace(/, $/, "") : "in Bearbeitung";
   const entries: [string, string][] = [
     [EXTRA_LABEL.type, ASSET_TYPE_LABEL[v.meta.type]],
     [EXTRA_LABEL.owner, v.meta.owner],
@@ -267,8 +271,9 @@ function buildCover(wb: ExcelJS.Workbook, v: AssessmentVersion, history: Assessm
     [EXTRA_LABEL.location, v.meta.location],
     [EXTRA_LABEL.assetId, v.assetId],
     [EXTRA_LABEL.versionId, v.id],
-    [EXTRA_LABEL.approval, approval],
-    [EXTRA_LABEL.hash, v.hash ?? "wird bei Freigabe erzeugt"],
+    [EXTRA_LABEL.closed, closed],
+    [EXTRA_LABEL.scheme, describeScheme(v.scheme)],
+    [EXTRA_LABEL.organization, settings?.organization.name ?? ""],
   ];
   for (const [text, val] of entries) {
     row++;
@@ -284,15 +289,15 @@ function buildCover(wb: ExcelJS.Workbook, v: AssessmentVersion, history: Assessm
 }
 
 /** Cached value of Anwendung!E1/E37/E74, computed exactly like the legacy formula. */
-function legacyGoalResult(v: AssessmentVersion, goal: Goal): string {
-  const sum = CATALOG[goal].scenarios.reduce(
+function legacyGoalResult(v: AssessmentVersion, goal: Goal, catalog: Record<Goal, GoalDef>): string {
+  const sum = catalog[goal].scenarios.reduce(
     (acc, def) => acc + weight(evaluateLevel(def, answerToCells(def, v.answers[goal]?.[def.id]))),
     0,
   );
   return evaluateGoal(goal, sum);
 }
 
-function buildAssessment(wb: ExcelJS.Workbook, v: AssessmentVersion) {
+function buildAssessment(wb: ExcelJS.Workbook, v: AssessmentVersion, catalog: Record<Goal, GoalDef>) {
   const ws = wb.addWorksheet(SHEET.assessment, {
     pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
@@ -300,7 +305,7 @@ function buildAssessment(wb: ExcelJS.Workbook, v: AssessmentVersion) {
 
   const answerCells: string[] = [];
   for (const goal of GOALS) {
-    const gd = CATALOG[goal];
+    const gd = catalog[goal];
     const h = gd.headerRow;
     const title = ws.getCell(`B${h}`);
     title.value = gd.title;
@@ -309,7 +314,7 @@ function buildAssessment(wb: ExcelJS.Workbook, v: AssessmentVersion) {
     title.font = { name: FONT, size: 12, bold: true, color: { argb: COLOR.white } };
     ws.mergeCells(`E${h}:G${h}`);
     const res = ws.getCell(`E${h}`);
-    res.value = { formula: goalFormula(goal), result: legacyGoalResult(v, goal) };
+    res.value = { formula: goalFormula(goal), result: legacyGoalResult(v, goal, catalog) };
     style(res, { bold: true, size: 12 });
     res.alignment = { vertical: "middle", horizontal: "center" };
     ws.addConditionalFormatting({ ref: `E${h}:G${h}`, rules: levelRules(`E${h}`) });
@@ -474,7 +479,8 @@ function buildAudit(wb: ExcelJS.Workbook, audit: AuditEntry[]) {
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: Math.max(1, sorted.length + 1), column: 8 } };
 }
 
-function buildDefinitions(wb: ExcelJS.Workbook) {
+function buildDefinitions(wb: ExcelJS.Workbook, v: AssessmentVersion) {
+  const DEFINITIONS = definitionsFor(v.scheme);
   const ws = wb.addWorksheet(SHEET.definitions, {
     views: [{ state: "frozen", xSplit: 1, ySplit: 2 }],
     pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
@@ -525,7 +531,7 @@ function buildDefinitions(wb: ExcelJS.Workbook) {
   style(note, { size: 9, color: COLOR.muted });
 }
 
-function buildHelper(wb: ExcelJS.Workbook, v: AssessmentVersion) {
+function buildHelper(wb: ExcelJS.Workbook, v: AssessmentVersion, catalog: Record<Goal, GoalDef>) {
   const ws = wb.addWorksheet(SHEET.helper, { state: "hidden" });
   for (const goal of GOALS) {
     const [lc, vc] = HELPER_COLUMNS[goal];
@@ -533,17 +539,29 @@ function buildHelper(wb: ExcelJS.Workbook, v: AssessmentVersion) {
     ws.getCell(`${lc}3`).value = "Spalte";
     ws.getCell(`${vc}3`).value = "Wert";
     let sum = 0;
-    CATALOG[goal].scenarios.forEach((def, i) => {
+    catalog[goal].scenarios.forEach((def, i) => {
       const row = HELPER_FIRST_ROW + i;
       const w = weight(evaluateLevel(def, answerToCells(def, v.answers[goal]?.[def.id])));
       sum += w;
       ws.getCell(`${lc}${row}`).value = `G${def.gateRow}`;
       ws.getCell(`${vc}${row}`).value = { formula: helperCellFormula(goal, i), result: w };
     });
-    const last = HELPER_FIRST_ROW + CATALOG[goal].scenarios.length - 1;
+    const last = HELPER_FIRST_ROW + catalog[goal].scenarios.length - 1;
     ws.getCell(`${lc}${HELPER_SUM_ROW}`).value = "Summe";
     ws.getCell(`${vc}${HELPER_SUM_ROW}`).value = { formula: `SUM(${vc}${HELPER_FIRST_ROW}:${vc}${last})`, result: sum };
   }
+}
+
+/** Places the organization logo top right on the cover sheet (PNG/JPEG data URLs only). */
+function addLogo(wb: ExcelJS.Workbook, settings?: Settings) {
+  const logo = settings?.organization.logo;
+  const m = logo?.match(/^data:image\/(png|jpe?g);base64,(.+)$/i);
+  if (!m) return;
+  const extension = m[1]!.toLowerCase() === "png" ? "png" : "jpeg";
+  const id = wb.addImage({ base64: m[2]!, extension });
+  const ws = wb.getWorksheet(SHEET.cover);
+  // Right part of the title band; the size keeps the aspect of typical square logos.
+  ws?.addImage(id, { tl: { col: 8.35, row: 0.2 }, ext: { width: 44, height: 44 } });
 }
 
 /**
@@ -555,6 +573,7 @@ export async function exportVersionXlsx(
   version: AssessmentVersion,
   history: AssessmentVersion[],
   audit: AuditEntry[],
+  settings?: Settings,
 ): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "KOPEXA Schutzbedarfsanalyse";
@@ -564,11 +583,13 @@ export async function exportVersionXlsx(
   wb.title = `Schutzbedarfsanalyse ${version.meta.name} ${versionLabel(version)}`;
   wb.calcProperties.fullCalcOnLoad = true;
 
-  buildCover(wb, version, history);
-  buildAssessment(wb, version);
+  const catalog = catalogFor(version.scheme);
+  buildCover(wb, version, history, catalog, settings);
+  addLogo(wb, settings);
+  buildAssessment(wb, version, catalog);
   buildAudit(wb, audit);
-  buildDefinitions(wb);
-  buildHelper(wb, version);
+  buildDefinitions(wb, version);
+  buildHelper(wb, version, catalog);
 
   const buf = await wb.xlsx.writeBuffer();
   return new Uint8Array(buf as ArrayBuffer);

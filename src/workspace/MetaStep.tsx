@@ -1,5 +1,6 @@
 import { Field, Segmented, Select } from "../components/ui";
 import { META_LABEL } from "../domain/diff";
+import { formatEuro, formatHours } from "../domain/scheme";
 import { ASSET_TYPE_LABEL, type AssetMeta, type AssetType } from "../domain/types";
 import { CommitInput, useEditor } from "./editor";
 
@@ -120,6 +121,12 @@ export function MetaStep() {
 
       <section className="grid gap-4 border-t border-line pt-8">
         <h3 className="text-[15px] font-semibold">Version</h3>
+        <p className="text-[13.5px] text-muted">
+          Bewertet nach Schema „{version.scheme.name}“ (Stand {version.scheme.revision}): finanzieller Schaden hoch ab{" "}
+          {formatEuro(version.scheme.financialHigh)}, sehr hoch ab {formatEuro(version.scheme.financialVeryHigh)}; tolerierbarer
+          Ausfall bei hoch bis {formatHours(version.scheme.availabilityHighHours)}, bei sehr hoch bis{" "}
+          {formatHours(version.scheme.availabilityVeryHighHours)}.
+        </p>
         <Field label="Anlass dieser Version" hint="Erscheint in der Änderungshistorie des Deckblatts.">
           {(id) => (
             <CommitInput

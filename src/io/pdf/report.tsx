@@ -1,11 +1,11 @@
-import { Document, Font, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
 
 // Never hyphenate: e-mail addresses and technical identifiers must stay intact.
 Font.registerHyphenationCallback((word) => [word]);
 import type { ReactNode } from "react";
-import { CATALOG, SCENARIO_SHORT } from "../../domain/catalog";
+import { CATALOG, SCENARIO_SHORT, type GoalDef } from "../../domain/catalog";
 import { META_LABEL } from "../../domain/diff";
-import { MEASURES } from "../../domain/measures";
+import { catalogFor, DEFAULT_MEASURES, describeScheme, type MeasureCatalog, type Settings } from "../../domain/scheme";
 import { goalResult, scenarioLevel, validate, type Rated } from "../../domain/scoring";
 import {
   ASSET_TYPE_LABEL,
@@ -19,16 +19,25 @@ import {
   type AssetMeta,
   type Goal,
   type ScenarioId,
-  type Signoff,
 } from "../../domain/types";
 import { versionLabel } from "../../domain/versioning";
 
-export type IntegrityState = "unsealed" | "valid" | "tampered";
-
 export interface ReportOptions {
-  integrity?: IntegrityState;
+  /** Organization, measures; the rating scheme comes from the version itself. */
+  settings?: Settings;
   /** Fixed generation date, mainly for deterministic tests. */
   generatedAt?: Date;
+}
+
+interface ReportContext {
+  version: AssessmentVersion;
+  history: AssessmentVersion[];
+  catalog: Record<Goal, GoalDef>;
+  measures: MeasureCatalog;
+  orgName: string;
+  /** PNG/JPEG data URL; other formats are not supported by the PDF renderer. */
+  logo: string | null;
+  generatedAt: Date;
 }
 
 const INK = "#141A23";
@@ -73,6 +82,8 @@ const s = StyleSheet.create({
     color: MUTED,
   },
   headBrand: { fontFamily: "Helvetica-Bold", color: INK },
+  headLeft: { flexDirection: "row", alignItems: "flex-end" },
+  logo: { maxHeight: 14, maxWidth: 70, marginRight: 6, objectFit: "contain" },
   draftLine: { color: DANGER, fontSize: 8.5, marginTop: -12, marginBottom: 14 },
   title: { fontFamily: "Helvetica-Bold", fontSize: 20, lineHeight: 1.2, marginBottom: 4 },
   meta: { fontSize: 8, color: MUTED },
@@ -122,7 +133,7 @@ const s = StyleSheet.create({
   measureCol: { flex: 1, marginRight: 14, fontSize: 8.5 },
   issue: { flexDirection: "row", marginBottom: 3 },
   issueKind: { width: 44, fontSize: 8 },
-  sigLine: { borderBottomWidth: HAIRLINE, borderBottomColor: INK, height: 24 },
+  sigLine: { borderBottomWidth: HAIRLINE, borderBottomColor: INK, height: 18 },
   mono: { fontFamily: "Courier", fontSize: 8 },
   footer: {
     position: "absolute",
@@ -248,29 +259,24 @@ function Bullet({ children }: { children: ReactNode }) {
   );
 }
 
-function Frame({
-  version,
-  generatedAt,
-  children,
-}: {
-  version: AssessmentVersion;
-  generatedAt: Date;
-  children: ReactNode;
-}) {
-  const isFinal = version.status === "approved" || version.status === "archived";
+function Frame({ ctx, children }: { ctx: ReportContext; children: ReactNode }) {
+  const { version } = ctx;
   return (
     <Page size="A4" style={s.page} wrap>
       <View style={s.head} fixed>
-        <Text>
-          <Text style={s.headBrand}>Kopexa</Text>  Schutzbedarfsanalyse
-        </Text>
+        <View style={s.headLeft}>
+          {ctx.logo && <Image src={ctx.logo} style={s.logo} />}
+          <Text>
+            <Text style={s.headBrand}>{ctx.orgName}</Text>  Schutzbedarfsanalyse
+          </Text>
+        </View>
         <Text>
           {version.meta.name || "Unbenanntes Asset"} · Version {versionLabel(version)}
         </Text>
       </View>
-      {!isFinal && (
+      {version.status === "draft" && (
         <Text style={s.draftLine} fixed>
-          Entwurf – nicht freigegeben. Inhalte können sich noch ändern.
+          In Bearbeitung – nicht abgeschlossen.
         </Text>
       )}
       {children}
@@ -278,7 +284,7 @@ function Frame({
         <Text>schutzbedarf.kopexa.com</Text>
         <Text
           render={({ pageNumber, totalPages }) =>
-            `Seite ${pageNumber} von ${totalPages} · erstellt am ${fmtDate(generatedAt.toISOString())}`
+            `Seite ${pageNumber} von ${totalPages} · erstellt am ${fmtDate(ctx.generatedAt.toISOString())}`
           }
         />
       </View>
@@ -286,16 +292,17 @@ function Frame({
   );
 }
 
-function SummaryPage({ version, generatedAt }: { version: AssessmentVersion; generatedAt: Date }) {
+function SummaryPage({ ctx }: { ctx: ReportContext }) {
+  const { version } = ctx;
   const results = { C: goalResult(version, "C"), I: goalResult(version, "I"), A: goalResult(version, "A") };
   const metaKeys = META_ORDER.filter((k) => k in META_LABEL);
   return (
-    <Frame version={version} generatedAt={generatedAt}>
+    <Frame ctx={ctx}>
       <Text style={s.title}>{version.meta.name || "Unbenanntes Asset"}</Text>
       <Text style={s.meta}>
         {ASSET_TYPE_LABEL[version.meta.type]} · Version {versionLabel(version)} · {STATUS_LABEL[version.status]} · zuletzt
         bearbeitet am {fmtDate(version.updatedAt)}
-        {version.approved ? ` · freigegeben am ${fmtDate(version.approved.at)}` : ""}
+        {version.closedAt ? ` · abgeschlossen am ${fmtDate(version.closedAt)} von ${version.closedBy ?? "–"}` : ""}
       </Text>
 
       <Text style={s.h2}>Ergebnis</Text>
@@ -365,18 +372,19 @@ function SummaryPage({ version, generatedAt }: { version: AssessmentVersion; gen
   );
 }
 
-function selectedOptionText(goal: Goal, id: ScenarioId, level: Rated): string | null {
-  const def = CATALOG[goal].scenarios.find((d) => d.id === id);
+function selectedOptionText(catalog: Record<Goal, GoalDef>, goal: Goal, id: ScenarioId, level: Rated): string | null {
+  const def = catalog[goal].scenarios.find((d) => d.id === id);
   const opt = def?.options.find((o) => o.level === level);
   if (!def || !opt) return null;
   return def.kind === "binary" ? `${def.followUp} ${opt.text}` : `${def.followUp.replace(/\s*…$/, "")} ${opt.text}.`;
 }
 
-function ReasoningPage({ version, generatedAt }: { version: AssessmentVersion; generatedAt: Date }) {
+function ReasoningPage({ ctx }: { ctx: ReportContext }) {
+  const { version, catalog } = ctx;
   const high = GOALS.map((g) => goalResult(version, g)).filter((r) => r.effective !== null && r.effective >= 2);
   const issues = validate(version);
   return (
-    <Frame version={version} generatedAt={generatedAt}>
+    <Frame ctx={ctx}>
       <Text style={[s.h2, { marginTop: 0 }]}>Begründungen für erhöhten Schutzbedarf</Text>
       {high.length === 0 && (
         <Text style={s.para}>
@@ -385,7 +393,7 @@ function ReasoningPage({ version, generatedAt }: { version: AssessmentVersion; g
         </Text>
       )}
       {high.map((r) => {
-        const scenarios = CATALOG[r.goal].scenarios
+        const scenarios = catalog[r.goal].scenarios
           .map((d) => ({ d, a: version.answers[r.goal]?.[d.id], l: scenarioLevel(version.answers[r.goal]?.[d.id]) }))
           .filter((x) => x.l !== null && x.l >= 2);
         return (
@@ -414,7 +422,7 @@ function ReasoningPage({ version, generatedAt }: { version: AssessmentVersion; g
                   <Text style={s.h3}>{d.title}</Text>
                   <LevelMark level={l} />
                 </View>
-                <Text style={s.muted}>{selectedOptionText(r.goal, d.id, l as Rated)}</Text>
+                <Text style={s.muted}>{selectedOptionText(catalog, r.goal, d.id, l as Rated)}</Text>
                 {a?.explanation.trim() ? (
                   <>
                     <Text style={s.label}>Erläuterung</Text>
@@ -435,7 +443,9 @@ function ReasoningPage({ version, generatedAt }: { version: AssessmentVersion; g
 
       {issues.length > 0 && (
         <>
-          <Text style={s.h2}>Offene Plausibilitätshinweise</Text>
+          <Text style={s.h2} minPresenceAhead={24}>
+            Offene Plausibilitätshinweise
+          </Text>
           {issues.map((w) => (
             <View key={w.path + w.message} style={s.issue} wrap={false}>
               <Text style={[s.issueKind, { color: w.severity === "error" ? DANGER : MUTED }]}>
@@ -446,75 +456,51 @@ function ReasoningPage({ version, generatedAt }: { version: AssessmentVersion; g
           ))}
         </>
       )}
+      <ClosingSection ctx={ctx} />
     </Frame>
   );
 }
 
-const INTEGRITY_TEXT: Record<IntegrityState, { title: string; body: string; color: string }> = {
-  valid: {
-    title: "Integrität bestätigt",
-    body: "Der SHA-256-Hash über den Inhalt dieser Version stimmt mit dem bei der Freigabe versiegelten Wert überein. Die Version wurde seit der Freigabe nicht verändert.",
-    color: INK,
-  },
-  tampered: {
-    title: "Integritätsverletzung festgestellt",
-    body: "Der berechnete SHA-256-Hash weicht vom versiegelten Wert ab. Der Inhalt wurde nach der Freigabe verändert; dieser Bericht ist nicht revisionssicher.",
-    color: DANGER,
-  },
-  unsealed: {
-    title: "Nicht versiegelt",
-    body: "Diese Version ist noch nicht freigegeben und daher nicht kryptografisch versiegelt.",
-    color: INK,
-  },
-};
+const SIGNOFF_COLS = ["20%", "34%", "18%", "28%"];
 
-const SIGNOFF_COLS = ["18%", "29%", "16%", "19%", "18%"];
-
-function SignoffRow({ role, signoff }: { role: string; signoff: Signoff | null }) {
+/** Sign-off row for the printed report; empty fields are filled in by hand. */
+function SignoffRow({ role, name, date }: { role: string; name?: string; date?: string }) {
   return (
-    <View style={[s.tr, { alignItems: "flex-start", paddingVertical: 3 }]} wrap={false}>
+    <View style={[s.tr, { alignItems: "flex-end", paddingVertical: 3 }]} wrap={false}>
       <Text style={[s.cell, { width: SIGNOFF_COLS[0] }]}>{role}</Text>
-      <Text style={[s.cell, { width: SIGNOFF_COLS[1] }]}>{signoff?.by ?? ""}</Text>
-      <Text style={[s.cell, { width: SIGNOFF_COLS[2] }]}>{signoff ? fmtDate(signoff.at, true).replace(",", "").replace(" UTC", "") : ""}</Text>
-      <View style={[s.cell, { width: SIGNOFF_COLS[3] }]}>
-        <Text style={{ color: signoff ? INK : MUTED }}>{signoff ? "erfasst" : "ausstehend"}</Text>
-        {signoff?.comment ? <Text style={s.small}>{signoff.comment}</Text> : null}
+      <View style={[s.cell, { width: SIGNOFF_COLS[1] }]}>
+        {name ? <Text>{name}</Text> : <View style={s.sigLine} />}
       </View>
-      <View style={[s.cell, { width: SIGNOFF_COLS[4] }]}>
+      <View style={[s.cell, { width: SIGNOFF_COLS[2] }]}>
+        {date ? <Text>{date}</Text> : <View style={s.sigLine} />}
+      </View>
+      <View style={[s.cell, { width: SIGNOFF_COLS[3] }]}>
         <View style={s.sigLine} />
       </View>
     </View>
   );
 }
 
-function SignoffPage({
-  version,
-  history,
-  integrity,
-  generatedAt,
-}: {
-  version: AssessmentVersion;
-  history: AssessmentVersion[];
-  integrity: IntegrityState;
-  generatedAt: Date;
-}) {
-  const info = INTEGRITY_TEXT[integrity];
-  const created: Signoff = { at: version.createdAt, by: version.createdBy };
+/** Measures, sign-off, history and method; flows on after the justifications. */
+function ClosingSection({ ctx }: { ctx: ReportContext }) {
+  const { version, history, measures } = ctx;
   const rows = [...history].sort((a, b) => a.major - b.major || a.minor - b.minor);
   const high = GOALS.map((g) => goalResult(version, g)).filter((r) => r.effective !== null && r.effective >= 2);
   return (
-    <Frame version={version} generatedAt={generatedAt}>
+    <>
       {high.length > 0 && (
-        <View wrap={false}>
-          <Text style={[s.h2, { marginTop: 0 }]}>Empfohlene Maßnahmen</Text>
+        <View>
+          <Text style={s.h2} minPresenceAhead={60}>
+            Empfohlene Maßnahmen
+          </Text>
           <View style={s.measureCols}>
             {high.map((r) => (
               <View key={r.goal} style={s.measureCol}>
                 <Text style={[s.h3, { marginBottom: 3 }]}>
                   {GOAL_LABEL[r.goal]}, {LEVEL_LABEL[r.effective as Rated]}
                 </Text>
-                {MEASURES[r.goal][r.effective as 2 | 3].map((m) => (
-                  <Bullet key={m}>{winAnsi(m)}</Bullet>
+                {(r.effective === 3 ? [...measures[r.goal][2], ...measures[r.goal][3]] : measures[r.goal][2]).map((m, i) => (
+                  <Bullet key={`${i}-${m}`}>{winAnsi(m)}</Bullet>
                 ))}
               </View>
             ))}
@@ -525,41 +511,29 @@ function SignoffPage({
         </View>
       )}
 
-      <Text style={[s.h2, high.length === 0 ? { marginTop: 0 } : {}]}>Freigabe</Text>
+      <Text style={s.h2} minPresenceAhead={80}>
+        Freigabe
+      </Text>
       <View style={s.th}>
-        {["Rolle", "Name", "Datum (UTC)", "In der App", "Unterschrift"].map((h, i) => (
+        {["Rolle", "Name", "Datum", "Unterschrift"].map((h, i) => (
           <Text key={h} style={[s.cell, { width: SIGNOFF_COLS[i] }]}>
             {h}
           </Text>
         ))}
       </View>
-      <SignoffRow role="Erstellt" signoff={created} />
-      <SignoffRow role="Fachlich freigegeben" signoff={version.submitted} />
-      <SignoffRow role="Freigegeben" signoff={version.approved} />
-      {version.rejections.length > 0 && (
-        <Text style={[s.small, { marginTop: 4 }]}>
-          Zurückweisungen im Prüfprozess:{" "}
-          {version.rejections.map((r) => `${fmtDate(r.at)} ${r.by}${r.comment ? ` („${r.comment}“)` : ""}`).join("; ")}
-        </Text>
-      )}
+      <SignoffRow role="Erstellt" name={version.createdBy} date={fmtDate(version.createdAt)} />
+      <SignoffRow role="Geprüft" />
+      <SignoffRow role="Freigegeben" />
 
-      <View wrap={false}>
-        <Text style={s.h2}>Integrität</Text>
-        <Text style={[s.h3, { color: info.color }]}>{info.title}</Text>
-        <Text style={[s.para, integrity === "tampered" ? { color: DANGER } : {}]}>{info.body}</Text>
-        <Text style={s.label}>SHA-256</Text>
-        <Text style={s.mono}>{version.hash ?? "–"}</Text>
-        <Text style={s.label}>Versions-ID</Text>
-        <Text style={s.mono}>{version.id}</Text>
-      </View>
-
-      <Text style={s.h2}>Änderungshistorie</Text>
+      <Text style={s.h2} minPresenceAhead={40}>
+        Änderungshistorie
+      </Text>
       <View style={s.th}>
         <Text style={[s.cell, { width: "12%" }]}>Version</Text>
         <Text style={[s.cell, { width: "14%" }]}>Datum</Text>
-        <Text style={[s.cell, { width: "38%" }]}>Beschreibung</Text>
+        <Text style={[s.cell, { width: "35%" }]}>Beschreibung</Text>
         <Text style={[s.cell, { width: "22%" }]}>Bearbeitet von</Text>
-        <Text style={[s.cell, { width: "14%" }]}>Status</Text>
+        <Text style={[s.cell, { width: "17%" }]}>Status</Text>
       </View>
       {rows.map((h) => {
         const current = h.id === version.id;
@@ -567,10 +541,10 @@ function SignoffPage({
         return (
           <View key={h.id} style={s.tr} wrap={false}>
             <Text style={[s.cell, { width: "12%" }, font]}>{versionLabel(h)}</Text>
-            <Text style={[s.cell, { width: "14%" }]}>{fmtDate(h.approved?.at ?? h.createdAt)}</Text>
-            <Text style={[s.cell, { width: "38%" }]}>{h.changeSummary || "–"}</Text>
-            <Text style={[s.cell, { width: "22%" }]}>{h.approved?.by ?? h.createdBy}</Text>
-            <Text style={[s.cell, { width: "14%" }]}>{STATUS_LABEL[h.status]}</Text>
+            <Text style={[s.cell, { width: "14%" }]}>{fmtDate(h.closedAt ?? h.createdAt)}</Text>
+            <Text style={[s.cell, { width: "35%" }]}>{h.changeSummary || "–"}</Text>
+            <Text style={[s.cell, { width: "22%" }]}>{h.closedBy ?? h.createdBy}</Text>
+            <Text style={[s.cell, { width: "17%" }]}>{STATUS_LABEL[h.status]}</Text>
           </View>
         );
       })}
@@ -580,53 +554,71 @@ function SignoffPage({
         </View>
       )}
 
-      <View wrap={false}>
-        <Text style={s.h2}>Methode</Text>
+      <View>
+        <Text style={s.h2} minPresenceAhead={50}>
+          Methode
+        </Text>
         <Text style={s.muted}>
-          Der Schutzbedarf wird je Grundwert (Vertraulichkeit, Integrität, Verfügbarkeit) anhand standardisierter
-          Schadensszenarien nach BSI-Standard 200-2 bzw. ISO/IEC 27001 ermittelt. Es gilt das Maximumprinzip: Der
-          Schutzbedarf eines Grundwerts entspricht dem höchsten Einzelschaden. Kumulations-, Verteilungs- und
-          Vererbungseffekte werden als begründete Übersteuerung dokumentiert.
+          Schutzbedarf je Grundwert anhand standardisierter Schadensszenarien nach BSI-Standard 200-2 bzw. ISO/IEC 27001,
+          Maximumprinzip über alle Szenarien. Kumulations-, Verteilungs- und Vererbungseffekte sind als begründete
+          Übersteuerung dokumentiert. Bewertungsschema: {describeScheme(version.scheme)}
+        </Text>
+        <Text style={[s.small, { marginTop: 4 }]}>
+          Versions-ID <Text style={s.mono}>{version.id}</Text>
         </Text>
       </View>
-    </Frame>
+    </>
   );
+}
+
+function isRasterDataUrl(url: string | null | undefined): url is string {
+  return !!url && /^data:image\/(png|jpe?g);base64,/i.test(url);
 }
 
 export function ReportDocument({
   version,
   history,
-  integrity,
+  settings,
   generatedAt,
 }: {
   version: AssessmentVersion;
   history: AssessmentVersion[];
-  integrity: IntegrityState;
+  settings?: Settings;
   generatedAt: Date;
 }) {
+  const ctx: ReportContext = {
+    version,
+    history,
+    catalog: catalogFor(version.scheme),
+    measures: settings?.measures ?? DEFAULT_MEASURES,
+    orgName: settings?.organization.name.trim() || "Kopexa",
+    logo: isRasterDataUrl(settings?.organization.logo) ? settings!.organization.logo : null,
+    generatedAt,
+  };
   return (
     <Document
       title={`Schutzbedarfsanalyse ${version.meta.name} v${versionLabel(version)}`}
-      author="Kopexa Schutzbedarfsanalyse"
+      author={ctx.orgName}
       subject="Schutzbedarfsanalyse – Executive Report"
       creator="schutzbedarf.kopexa.com"
       producer="schutzbedarf.kopexa.com"
       language="de-DE"
     >
-      <SummaryPage version={version} generatedAt={generatedAt} />
-      <ReasoningPage version={version} generatedAt={generatedAt} />
-      <SignoffPage version={version} history={history} integrity={integrity} generatedAt={generatedAt} />
+      <SummaryPage ctx={ctx} />
+      <ReasoningPage ctx={ctx} />
     </Document>
   );
 }
 
 function documentFor(version: AssessmentVersion, history: AssessmentVersion[], opts: ReportOptions = {}) {
-  const integrity = opts.integrity ?? (version.hash ? "valid" : "unsealed");
+  const settings = opts.settings
+    ? { ...sanitize(opts.settings), organization: { ...sanitize(opts.settings.organization), logo: opts.settings.organization.logo } }
+    : undefined;
   return (
     <ReportDocument
       version={sanitize(version)}
       history={sanitize(history)}
-      integrity={integrity}
+      settings={settings}
       generatedAt={opts.generatedAt ?? new Date()}
     />
   );

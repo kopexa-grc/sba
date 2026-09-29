@@ -1,4 +1,5 @@
 import { CATALOG, SCENARIO_SHORT } from "./catalog";
+import { formatEuro, formatHours } from "./scheme";
 import { goalResult, scenarioLevel, type Rated } from "./scoring";
 import {
   ASSET_TYPE_LABEL,
@@ -88,6 +89,18 @@ export function diffVersions(a: AssessmentVersion, b: AssessmentVersion): Change
       newValue: fmtMeta(key, b.meta),
     });
   }
+
+  const schemeLabel = (v: AssessmentVersion) =>
+    `${v.scheme.name} (Stand ${v.scheme.revision}): hoch ab ${formatEuro(v.scheme.financialHigh)}, sehr hoch ab ${formatEuro(
+      v.scheme.financialVeryHigh,
+    )}, Ausfall ${formatHours(v.scheme.availabilityHighHours)} / ${formatHours(v.scheme.availabilityVeryHighHours)}`;
+  push({
+    path: "scheme",
+    label: "Bewertungsschema",
+    kind: "context",
+    oldValue: schemeLabel(a),
+    newValue: schemeLabel(b),
+  });
 
   push({
     path: "changeSummary",

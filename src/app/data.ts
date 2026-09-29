@@ -1,14 +1,15 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { useEffect, useState } from "react";
 import { db } from "../db/db";
+import { repo } from "../db/repo";
+import type { Settings } from "../domain/scheme";
 import type { AssessmentVersion, AuditEntry } from "../domain/types";
-import { compareVersions, verifyIntegrity, type IntegrityState } from "../domain/versioning";
+import { compareVersions } from "../domain/versioning";
 
 export interface AssetRow {
   assetId: string;
   latest: AssessmentVersion;
-  /** Newest approved (valid) version, if any. */
-  approved: AssessmentVersion | null;
+  /** Newest closed version, if any. */
+  lastFinal: AssessmentVersion | null;
   versionCount: number;
 }
 
@@ -25,7 +26,7 @@ export function useAssetList(): AssetRow[] | undefined {
         return {
           assetId: a.id,
           latest,
-          approved: [...list].reverse().find((v) => v.status === "approved") ?? null,
+          lastFinal: [...list].reverse().find((v) => v.status === "final") ?? null,
           versionCount: list.length,
         };
       })
@@ -53,15 +54,10 @@ export function useAudit(assetId: string | undefined): AuditEntry[] | undefined 
   );
 }
 
-export function useIntegrity(version: AssessmentVersion | undefined): IntegrityState {
-  const [state, setState] = useState<IntegrityState>("unsealed");
-  useEffect(() => {
-    let alive = true;
-    if (!version) return;
-    verifyIntegrity(version).then((s) => alive && setState(s));
-    return () => {
-      alive = false;
-    };
-  }, [version]);
-  return state;
+/** Organization, rating scheme and measures; re-renders when they are saved. */
+export function useSettings(): Settings | undefined {
+  return useLiveQuery(async () => {
+    await db.settings.get("settings");
+    return repo.getSettings();
+  });
 }

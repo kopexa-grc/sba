@@ -1,7 +1,7 @@
-import { Check, ChevronLeft, CircleAlert, Lock } from "lucide-react";
+import { Check, ChevronLeft, Lock } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Navigate, NavLink, useLocation, useNavigate, useParams } from "react-router";
-import { useAudit, useIntegrity, useVersion, useVersions } from "../app/data";
+import { useAudit, useVersion, useVersions } from "../app/data";
 import { useSession } from "../app/session";
 import { LevelMark, ResultSummary } from "../components/level";
 import { Button, Meta, Select, cn } from "../components/ui";
@@ -27,7 +27,7 @@ const WIZARD: { step: Step; label: string }[] = [
   { step: "ergebnis", label: "Ergebnis & Begründung" },
 ];
 const RECORD: { step: Step; label: string }[] = [
-  { step: "historie", label: "Historie & Audit-Trail" },
+  { step: "historie", label: "Historie" },
   { step: "vergleich", label: "Versionsvergleich" },
 ];
 const STEPS = new Set<string>([...WIZARD, ...RECORD].map((s) => s.step));
@@ -37,7 +37,6 @@ export function Workspace() {
   const version = useVersion(versionId);
   const versions = useVersions(assetId);
   const audit = useAudit(assetId);
-  const integrity = useIntegrity(version);
   const navigate = useNavigate();
   const { hash } = useLocation();
   const { notify } = useSession();
@@ -61,8 +60,7 @@ export function Workspace() {
   const results = allResults(version);
   const issues = validate(version);
   const wizardIndex = WIZARD.findIndex((s) => s.step === step);
-  const successor = version.supersededBy ? versions.find((v) => v.id === version.supersededBy) : undefined;
-  const lastRejection = version.status === "draft" ? version.rejections.at(-1) : undefined;
+  const successor = versions.find((v) => v.parentVersionId === version.id);
 
   const done = (s: Step): boolean => {
     if (s === "C" || s === "I" || s === "A") return goalResult(version, s).complete;
@@ -113,43 +111,22 @@ export function Workspace() {
               version={version}
               versions={versions}
               onBlocked={() => {
-                notify("Vor dem Einreichen fehlen noch Pflichtangaben.", "error");
+                notify("Vor dem Abschließen fehlen noch Pflichtangaben.", "error");
                 navigate(`${basePath}/ergebnis`);
               }}
             />
           </div>
 
-          {version.status !== "draft" && (
+          {version.status === "final" && (
             <p className="mt-4 flex items-start gap-2 text-[13px]">
               <Lock className="mt-[3px] size-3.5 shrink-0 text-muted" />
               <span>
-                {version.status === "review" && (
-                  <>
-                    Eingereicht am {formatDateTime(version.submitted?.at)} von {actorName(version.submitted?.by ?? "")}
-                    {version.submitted?.comment && <> mit dem Hinweis „{version.submitted.comment}“</>}. Die Version ist bis
-                    zur Entscheidung schreibgeschützt.
-                  </>
+                Abgeschlossen am {formatDateTime(version.closedAt)} von {actorName(version.closedBy ?? "")} und schreibgeschützt.
+                {successor ? (
+                  <> Nachfolger ist Version {versionLabel(successor)}.</>
+                ) : (
+                  <> Änderungen erfolgen in einer neuen Version.</>
                 )}
-                {version.status === "approved" && (
-                  <>
-                    Freigegeben am {formatDateTime(version.approved?.at)} von {actorName(version.approved?.by ?? "")}.
-                    Änderungen sind nur über eine neue Version möglich.
-                  </>
-                )}
-                {version.status === "archived" && (
-                  <>
-                    Archiviert{successor && <>, abgelöst durch Version {versionLabel(successor)}</>}. Nur noch zur
-                    Nachvollziehbarkeit.
-                  </>
-                )}
-              </span>
-            </p>
-          )}
-          {lastRejection && (
-            <p className="mt-4 flex items-start gap-2 text-[13px]">
-              <CircleAlert className="mt-[3px] size-3.5 shrink-0 text-red-700" />
-              <span>
-                Zurückgewiesen am {formatDateTime(lastRejection.at)} von {actorName(lastRejection.by)}: „{lastRejection.comment}“
               </span>
             </p>
           )}
@@ -194,7 +171,7 @@ export function Workspace() {
 
         <div className="min-w-0">
           <div className="mb-8 xl:hidden">
-            <ResultSummary results={results} integrity={integrity} hash={version.hash} approvedAt={version.approved?.at} />
+            <ResultSummary results={results} />
           </div>
           {step === "stammdaten" && <MetaStep />}
           {(step === "C" || step === "I" || step === "A") && <GoalStep goal={step} />}
@@ -224,13 +201,7 @@ export function Workspace() {
           <div className="sticky top-20 grid gap-8">
             <div>
               <h2 className="mb-1 text-[13px] font-semibold">Schutzbedarf</h2>
-              <ResultSummary
-                layout="rows"
-                results={results}
-                integrity={integrity}
-                hash={version.hash}
-                approvedAt={version.approved?.at}
-              />
+              <ResultSummary layout="rows" results={results} />
             </div>
             {version.status === "draft" && <IssueList issues={issues} basePath={basePath} compact />}
           </div>

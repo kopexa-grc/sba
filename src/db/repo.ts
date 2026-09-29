@@ -1,14 +1,13 @@
 import { diffVersions, reclassifications, type Change } from "../domain/diff";
 import type { AssessmentVersion, Asset, AssetMeta, AuditAction, AuditEntry } from "../domain/types";
+import { defaultSettings, snapshotOf, type Settings } from "../domain/scheme";
+import { hasBlockingIssues } from "../domain/scoring";
 import {
-  approve as approveVersion,
   branchVersion,
+  closeVersion,
   compareVersions,
   newVersion,
   nowIso,
-  rejectReview,
-  submitForReview,
-  supersede,
   uid,
   versionLabel,
   WorkflowError,
@@ -41,6 +40,41 @@ export class Repo {
     await this.d.settings.put({ key: "identity", value: id });
   }
 
+  async markBackup(): Promise<void> {
+    await this.d.settings.put({ key: "lastBackupAt", value: nowIso() });
+  }
+
+  async lastBackupAt(): Promise<string | null> {
+    return ((await this.d.settings.get("lastBackupAt"))?.value as string | undefined) ?? null;
+  }
+
+  async getSettings(): Promise<Settings> {
+    const row = await this.d.settings.get("settings");
+    const stored = row?.value as Partial<Settings> | undefined;
+    const defaults = defaultSettings();
+    return {
+      organization: { ...defaults.organization, ...stored?.organization },
+      scheme: { ...defaults.scheme, ...stored?.scheme },
+      measures: stored?.measures ?? defaults.measures,
+    };
+  }
+
+  /** Saves settings; any change to the thresholds creates a new scheme revision. */
+  async saveSettings(next: Settings): Promise<Settings> {
+    const current = await this.getSettings();
+    const { revision: _r, updatedAt: _u, ...a } = current.scheme;
+    const { revision: _r2, updatedAt: _u2, ...b } = next.scheme;
+    const schemeChanged = JSON.stringify(a) !== JSON.stringify(b);
+    const saved: Settings = {
+      ...next,
+      scheme: schemeChanged
+        ? { ...next.scheme, revision: current.scheme.revision + 1, updatedAt: nowIso() }
+        : current.scheme,
+    };
+    await this.d.settings.put({ key: "settings", value: saved });
+    return saved;
+  }
+
   private entry(
     v: AssessmentVersion,
     actor: string,
@@ -65,7 +99,7 @@ export class Repo {
 
   async createAsset(actor: string, meta: Partial<AssetMeta> = {}): Promise<AssessmentVersion> {
     const assetId = uid();
-    const v = newVersion(assetId, actor, meta);
+    const v = newVersion(assetId, actor, meta, snapshotOf((await this.getSettings()).scheme));
     await this.d.transaction("rw", this.d.assets, this.d.versions, this.d.audit, async () => {
       await this.d.assets.add({ id: assetId, createdAt: v.createdAt, latestVersionId: v.id });
       await this.d.versions.add(v);
@@ -134,50 +168,32 @@ export class Repo {
     return reclassifications(current, next, await this.baseline(current));
   }
 
-  async submit(versionId: string, actor: string, comment?: string): Promise<void> {
-    await this.transition(versionId, actor, "submit", (v) => submitForReview(v, actor, comment), comment);
-  }
-
-  async reject(versionId: string, actor: string, comment: string): Promise<void> {
-    await this.transition(versionId, actor, "reject", (v) => rejectReview(v, actor, comment), comment);
-  }
-
-  /** Approves and seals a version; a previously approved version of the asset is archived. */
-  async approve(versionId: string, actor: string, comment?: string): Promise<AssessmentVersion> {
+  /** Closes a draft; it becomes read-only. Requires all mandatory fields. */
+  async close(versionId: string, actor: string): Promise<AssessmentVersion> {
     const current = await this.d.versions.get(versionId);
     if (!current) throw new WorkflowError("Version nicht gefunden.");
-    const approved = await approveVersion(current, actor, comment);
+    if (hasBlockingIssues(current)) throw new WorkflowError("Vor dem Abschließen fehlen noch Pflichtangaben.");
+    const closed = closeVersion(current, actor);
     await this.d.transaction("rw", this.d.versions, this.d.audit, async () => {
-      await this.d.versions.put(approved);
-      await this.d.audit.add(
-        this.entry(approved, actor, "approve", { newValue: `SHA-256 ${approved.hash}`, reason: comment ?? null }),
-      );
-      const siblings = await this.d.versions.where("assetId").equals(approved.assetId).toArray();
-      for (const s of siblings) {
-        if (s.id !== approved.id && s.status === "approved") {
-          const archived = supersede(s, approved.id, actor);
-          await this.d.versions.put(archived);
-          await this.d.audit.add(
-            this.entry(archived, actor, "supersede", { newValue: `abgelöst durch ${versionLabel(approved)}` }),
-          );
-        }
-      }
+      await this.d.versions.put(closed);
+      await this.d.audit.add(this.entry(closed, actor, "close", { oldValue: versionLabel(current), newValue: versionLabel(closed) }));
     });
-    return approved;
+    return closed;
   }
 
   async branch(versionId: string, actor: string, kind: "minor" | "major", summary: string): Promise<AssessmentVersion> {
     const from = await this.d.versions.get(versionId);
     if (!from) throw new WorkflowError("Version nicht gefunden.");
-    if (from.status !== "approved" && from.status !== "archived") {
-      throw new WorkflowError("Neue Versionen können nur aus freigegebenen Versionen erstellt werden.");
+    if (from.status !== "final") {
+      throw new WorkflowError("Neue Versionen entstehen aus einer abgeschlossenen Version.");
     }
     const siblings = await this.versionsOf(from.assetId);
-    if (siblings.some((s) => s.status === "draft" || s.status === "review")) {
+    if (siblings.some((s) => s.status === "draft")) {
       throw new WorkflowError("Für dieses Asset existiert bereits eine offene Arbeitsversion.");
     }
     if (!summary.trim()) throw new WorkflowError("Bitte beschreiben Sie den Anlass der neuen Version.");
-    const next = branchVersion(from, siblings, kind, actor, summary);
+    const scheme = snapshotOf((await this.getSettings()).scheme);
+    const next = branchVersion(from, siblings, kind, actor, summary, scheme);
     await this.d.transaction("rw", this.d.assets, this.d.versions, this.d.audit, async () => {
       await this.d.versions.add(next);
       await this.d.assets.update(from.assetId, { latestVersionId: next.id });
@@ -211,28 +227,6 @@ export class Repo {
       await this.d.versions.where("assetId").equals(assetId).delete();
       await this.d.audit.where("assetId").equals(assetId).delete();
       await this.d.assets.delete(assetId);
-    });
-  }
-
-  private async transition(
-    versionId: string,
-    actor: string,
-    action: AuditAction,
-    fn: (v: AssessmentVersion) => AssessmentVersion,
-    comment?: string,
-  ): Promise<void> {
-    await this.d.transaction("rw", this.d.versions, this.d.audit, async () => {
-      const current = await this.d.versions.get(versionId);
-      if (!current) throw new WorkflowError("Version nicht gefunden.");
-      const next = fn(current);
-      await this.d.versions.put(next);
-      await this.d.audit.add(
-        this.entry(next, actor, action, {
-          oldValue: current.status,
-          newValue: next.status,
-          reason: comment ?? null,
-        }),
-      );
     });
   }
 

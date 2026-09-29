@@ -1,8 +1,5 @@
-import { Lock, ShieldAlert } from "lucide-react";
 import type { GoalResult, Rated } from "../domain/scoring";
 import { GOAL_LABEL, GOAL_SHORT, GOALS, LEVEL_LABEL, type Goal } from "../domain/types";
-import type { IntegrityState } from "../domain/versioning";
-import { formatDateTime } from "../lib/format";
 import { cn } from "./ui";
 
 export const LEVEL_BG: Record<Rated, string> = { 1: "bg-lvl-1", 2: "bg-lvl-2", 3: "bg-lvl-3" };
@@ -65,23 +62,8 @@ export function TriadMarks({ results }: { results: Record<Goal, GoalResult> }) {
   );
 }
 
-/**
- * Aggregated result per goal plus the integrity line. After approval the line
- * carries the SHA-256 fingerprint and its verification state.
- */
-export function ResultSummary({
-  results,
-  integrity,
-  hash,
-  approvedAt,
-  layout = "columns",
-}: {
-  results: Record<Goal, GoalResult>;
-  integrity: IntegrityState;
-  hash: string | null;
-  approvedAt?: string | null;
-  layout?: "columns" | "rows";
-}) {
+/** Aggregated result per goal: columns (wide) or rows (sidebar). */
+export function ResultSummary({ results, layout = "columns" }: { results: Record<Goal, GoalResult>; layout?: "columns" | "rows" }) {
   return (
     <div>
       <dl className={cn(layout === "columns" ? "grid grid-cols-3 divide-x divide-line" : "divide-y divide-line")}>
@@ -110,38 +92,6 @@ export function ResultSummary({
           );
         })}
       </dl>
-      <IntegrityLine integrity={integrity} hash={hash} approvedAt={approvedAt} />
-    </div>
-  );
-}
-
-export function IntegrityLine({
-  integrity,
-  hash,
-  approvedAt,
-}: {
-  integrity: IntegrityState;
-  hash: string | null;
-  approvedAt?: string | null;
-}) {
-  return (
-    <div
-      className={cn(
-        "mt-3 flex items-center gap-1.5 border-t border-line pt-2.5 text-[12px]",
-        integrity === "tampered" ? "text-red-700" : "text-muted",
-      )}
-    >
-      {integrity === "tampered" ? <ShieldAlert className="size-3.5 shrink-0" /> : <Lock className="size-3.5 shrink-0" />}
-      <span className="min-w-0 truncate">
-        {integrity === "unsealed" && "Wird bei der Freigabe versiegelt"}
-        {integrity === "valid" && <>Versiegelt{approvedAt ? ` am ${formatDateTime(approvedAt)}` : ""} · SHA-256 </>}
-        {integrity === "tampered" && <>Siegel verletzt: Inhalt weicht vom Freigabestand ab · SHA-256 </>}
-        {hash && (
-          <span className="font-mono text-[11.5px]" title={hash}>
-            {hash.slice(0, 8)}…{hash.slice(-6)}
-          </span>
-        )}
-      </span>
     </div>
   );
 }

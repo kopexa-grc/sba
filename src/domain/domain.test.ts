@@ -3,18 +3,8 @@ import { CATALOG, SCENARIO_COUNT } from "./catalog";
 import { diffVersions, goalLevelChanges } from "./diff";
 import { goalResult, progress, scenarioLevel, validate } from "./scoring";
 import type { AssessmentVersion, Goal, ScenarioAnswer } from "./types";
-import {
-  approve,
-  branchVersion,
-  newVersion,
-  nextNumber,
-  rejectReview,
-  stableStringify,
-  submitForReview,
-  verifyIntegrity,
-  versionLabel,
-  WorkflowError,
-} from "./versioning";
+import { catalogFor, DEFAULT_SNAPSHOT, definitionsFor, schemeErrors } from "./scheme";
+import { branchVersion, closeVersion, newVersion, nextNumber, versionLabel, WorkflowError } from "./versioning";
 
 const no = (): ScenarioAnswer => ({ applies: false, level: null, notes: "", explanation: "" });
 const yes = (level: 1 | 2 | 3, explanation = "weil"): ScenarioAnswer => ({ applies: true, level, notes: "", explanation });
@@ -108,7 +98,7 @@ describe("versioning", () => {
   it("labels working copies as -dev", () => {
     const v = newVersion("a", "x");
     expect(versionLabel(v)).toBe("1.0-dev");
-    expect(versionLabel({ ...v, status: "approved" })).toBe("1.0");
+    expect(versionLabel({ ...v, status: "final" })).toBe("1.0");
   });
 
   it("computes the next free number", () => {
@@ -121,43 +111,48 @@ describe("versioning", () => {
     expect(nextNumber(existing, { major: 1, minor: 1 }, "major")).toEqual({ major: 3, minor: 0 });
   });
 
-  it("runs the review workflow and seals approved versions", async () => {
-    const draft = complete();
-    const inReview = submitForReview(draft, "alice");
-    expect(inReview.status).toBe("review");
-    const back = rejectReview(inReview, "ciso", "Begründung fehlt");
-    expect(back.status).toBe("draft");
-    expect(back.rejections).toHaveLength(1);
-    expect(() => rejectReview(inReview, "ciso", "")).toThrow(WorkflowError);
-
-    const approved = await approve(submitForReview(back, "alice"), "ciso");
-    expect(approved.status).toBe("approved");
-    expect(approved.hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(await verifyIntegrity(approved)).toBe("valid");
-
-    const tampered = structuredClone(approved);
-    tampered.answers.C.legal = yes(3);
-    expect(await verifyIntegrity(tampered)).toBe("tampered");
-
-    // Archiving after supersession must not break the seal.
-    expect(await verifyIntegrity({ ...approved, status: "archived", supersededBy: "x" })).toBe("valid");
+  it("closes a draft and makes it final", () => {
+    const closed = closeVersion(complete(), "alice");
+    expect(closed.status).toBe("final");
+    expect(closed.closedBy).toBe("alice");
+    expect(versionLabel(closed)).toBe("1.0");
+    expect(() => closeVersion(closed, "alice")).toThrow(WorkflowError);
   });
 
-  it("branches a new draft from an approved version", async () => {
-    const approved = await approve(submitForReview(complete(), "alice"), "ciso");
-    const next = branchVersion(approved, [approved], "minor", "bob", "Rezertifizierung");
+  it("branches a new draft from a closed version with the current scheme", () => {
+    const closed = closeVersion(complete(), "alice");
+    const scheme = { ...DEFAULT_SNAPSHOT, revision: 2, financialHigh: 50_000, financialVeryHigh: 500_000 };
+    const next = branchVersion(closed, [closed], "minor", "bob", "Rezertifizierung", scheme);
     expect(next.status).toBe("draft");
     expect(versionLabel(next)).toBe("1.1-dev");
-    expect(next.parentVersionId).toBe(approved.id);
-    expect(next.hash).toBeNull();
-    expect(next.answers).toEqual(approved.answers);
-    expect(next.answers).not.toBe(approved.answers);
+    expect(next.parentVersionId).toBe(closed.id);
+    expect(next.closedAt).toBeNull();
+    expect(next.scheme.revision).toBe(2);
+    expect(next.answers).toEqual(closed.answers);
+    expect(next.answers).not.toBe(closed.answers);
+  });
+});
+
+describe("scheme", () => {
+  it("fills thresholds into the question texts", () => {
+    const scheme = { ...DEFAULT_SNAPSHOT, financialHigh: 50_000, financialVeryHigh: 500_000, availabilityHighHours: 8, availabilityVeryHighHours: 2 };
+    const cat = catalogFor(scheme);
+    const fin = cat.I.scenarios.find((x) => x.id === "financial")!;
+    expect(fin.options[1]!.text).toContain("50.000");
+    expect(fin.options[2]!.text).toContain("500.000");
+    const ops = cat.A.scenarios.find((x) => x.id === "operations")!;
+    expect(ops.options[1]!.text).toContain("zwischen 2 Stunden und 8 Stunden");
+    expect(ops.options[2]!.text).toContain("bis zu einer Dauer von 2 Stunden");
+    // The shared catalog stays untouched.
+    expect(CATALOG.I.scenarios.find((x) => x.id === "financial")!.options[1]!.text).toContain("1.000.000");
+    const defs = definitionsFor(scheme).find((d) => d.scenario === "financial")!;
+    expect(defs.high.C).toContain("50.000");
   });
 
-  it("stringifies deterministically regardless of key order", () => {
-    expect(stableStringify({ b: 1, a: { d: 2, c: [3, { f: 1, e: 0 }] } })).toBe(
-      stableStringify({ a: { c: [3, { e: 0, f: 1 }], d: 2 }, b: 1 }),
-    );
+  it("rejects implausible thresholds", () => {
+    expect(schemeErrors(DEFAULT_SNAPSHOT)).toEqual([]);
+    expect(schemeErrors({ ...DEFAULT_SNAPSHOT, financialVeryHigh: 1 })).toHaveLength(1);
+    expect(schemeErrors({ ...DEFAULT_SNAPSHOT, availabilityHighHours: 1 })).toHaveLength(1);
   });
 });
 

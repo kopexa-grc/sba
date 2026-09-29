@@ -9,7 +9,8 @@ const SECTIONS = [
   { id: "szenarien", title: "Schadensszenarien" },
   { id: "maximum", title: "Maximumprinzip & Sondereffekte" },
   { id: "ablauf", title: "Ablauf in der App" },
-  { id: "freigabe", title: "Freigabe, Siegel & Versionen" },
+  { id: "versionen", title: "Versionen & Änderungsprotokoll" },
+  { id: "schema", title: "Bewertungsschema" },
   { id: "daten", title: "Import, Export & Datenschutz" },
 ];
 
@@ -145,7 +146,7 @@ export function Help() {
           </ul>
           <p>
             Jede Übersteuerung braucht eine eigene Begründung. Für „Hoch“ und „Sehr hoch“ ist zusätzlich eine Begründung je
-            Grundwert und eine Erläuterung je Szenario Pflicht – Auditoren fordern sie in jeder Prüfung.
+            Grundwert und eine Erläuterung je Szenario Pflicht – Auditoren fordern sie in jeder Prüfung. Ohne sie lässt sich eine Version nicht abschließen.
           </p>
         </Section>
 
@@ -153,28 +154,39 @@ export function Help() {
           <ol className="grid gap-1.5 pl-5 [list-style:decimal]">
             <li>Analyse anlegen oder Excel-Bogen übernehmen.</li>
             <li>Asset, Owner und Geltungsbereich erfassen.</li>
-            <li>Vertraulichkeit, Integrität und Verfügbarkeit im Fragebogen bewerten – das Siegel rechts zeigt das Ergebnis live.</li>
-            <li>Im Ergebnis Sondereffekte prüfen, Begründungen ergänzen, Plausibilitätsprüfung abarbeiten.</li>
-            <li>Zur Prüfung einreichen; CISO, ISB oder DSB geben frei oder weisen mit Kommentar zurück.</li>
-            <li>Bericht als PDF (Management) oder Excel (Audit) exportieren; Maßnahmen im ISMS ableiten.</li>
+            <li>Vertraulichkeit, Integrität und Verfügbarkeit im Fragebogen bewerten – rechts steht das Ergebnis.</li>
+            <li>Im Ergebnis Sondereffekte prüfen, Begründungen ergänzen, offene Punkte abarbeiten.</li>
+            <li>Version abschließen und den Bericht als PDF oder Excel exportieren.</li>
+            <li>Maßnahmen im ISMS ableiten; für eine Unterschrift den PDF-Bericht ausdrucken.</li>
           </ol>
         </Section>
 
-        <Section id="freigabe" title="Freigabe, Siegel & Versionen">
+        <Section id="versionen" title="Versionen & Änderungsprotokoll">
           <p>
-            Status: <strong>Entwurf</strong> → <strong>In Prüfung</strong> → <strong>Freigegeben</strong>. Eine zurückgewiesene
-            Version geht als Entwurf zurück. Ab dem Einreichen ist die Version schreibgeschützt.
+            Eine Version ist <strong>in Bearbeitung</strong>, bis Sie sie <strong>abschließen</strong>. Danach ist sie
+            schreibgeschützt und dokumentiert den Stand der Analyse. Änderungen erfolgen in einer neuen Version – als kleine
+            Änderung (z. B. 1.1) oder als Neubewertung (z. B. 2.0). Die abgeschlossene Version bleibt unverändert erhalten.
           </p>
           <p>
-            Bei der Freigabe bildet die App einen SHA-256-Hash über den gesamten Inhalt (Stammdaten, Antworten, Begründungen,
-            Freigabevermerke). Das Siegel prüft diesen Hash bei jedem Öffnen – auch nach einem JSON-Import. Weicht der Inhalt
-            ab, wird das Siegel rot als „verletzt“ markiert.
-          </p>
-          <p>
-            Änderungen an einer freigegebenen Analyse erfolgen über „Neue Version anlegen“ (Minor, z. B. 1.1, oder Major, z. B.
-            2.0). Die bisherige Version bleibt gültig, bis die neue freigegeben ist, und wird dann archiviert. Jede
-            Höher- oder Herabstufung erfordert einen Änderungsgrund und landet mit altem und neuem Wert im Audit-Trail. Der
+            Jede Änderung landet mit Zeitpunkt, Person, altem und neuem Wert im Änderungsprotokoll. Wird eine bestehende
+            Einstufung höher- oder herabgestuft – auch gegenüber der vorherigen Version –, fragt die App nach dem Grund. Der
             Versionsvergleich zeigt Verschärfungen rot, Herabstufungen und neue Begründungen grün, Stammdaten gelb.
+          </p>
+          <p className="text-muted">
+            Die App ist für die eigenständige Analyse gedacht. Eine formelle Freigabe durch eine zweite Person findet außerhalb
+            statt, etwa per Unterschrift auf dem PDF-Bericht oder in der Kopexa-Plattform.
+          </p>
+        </Section>
+
+        <Section id="schema" title="Bewertungsschema">
+          <p>
+            Ab welchem Betrag ein finanzieller Schaden „hoch“ ist und welche Ausfallzeit noch tolerierbar ist, hängt von der
+            Organisation ab. Die Standardwerte stammen aus dem Referenzbogen (1 Mio. € / 10 Mio. €, 24 h / 1 h). Unter
+            Einstellungen lassen sie sich anpassen; die Fragen im Bogen übernehmen die Werte.
+          </p>
+          <p>
+            Jede Analyse speichert, mit welchem Schema-Stand sie bewertet wurde. Spätere Änderungen am Schema gelten nur für
+            neue Analysen und neue Versionen – abgeschlossene Bewertungen bleiben nachvollziehbar.
           </p>
         </Section>
 
@@ -186,21 +198,22 @@ export function Help() {
               („Eingabe prüfen!“) lösen Sie dort auf.
             </li>
             <li>
-              <strong>Excel-Export:</strong> Deckblatt, Anwendung (Originalstruktur mit Formeln und Ampel), Audit-Trail und
-              Definitionen – für Auditoren ohne Zugriff auf die App.
+              <strong>Excel-Export:</strong> Deckblatt, Anwendung (Originalstruktur mit Formeln und Ampel),
+              Änderungsprotokoll und Definitionen – für Auditoren ohne Zugriff auf die App.
             </li>
             <li>
-              <strong>PDF-Bericht:</strong> Management Summary, Begründungen, Maßnahmen und Unterschriftenmatrix.
+              <strong>PDF-Bericht:</strong> Management Summary, Begründungen, Maßnahmen und Unterschriftenfelder zum Ausdrucken.
             </li>
             <li>
-              <strong>Datensicherung (.sba.json):</strong> vollständige Analysen inklusive aller Versionen und Audit-Trail, mit
-              Schema-Version für künftige App-Updates.
+              <strong>Dateien (.sba.json):</strong> ein Format für alles – vollständige Sicherung, geteilte Einstellungen
+              oder einzelne Analysen. Beim Einlesen wählen Sie, was übernommen wird. Ältere Dateien werden automatisch
+              umgewandelt.
             </li>
           </ul>
           <p>
             Alle Daten liegen ausschließlich in diesem Browser (IndexedDB). Es werden keine Inhalte an Server übertragen. Die
             App funktioniert nach dem ersten Laden vollständig offline und lässt sich als App installieren. Löschen Sie die
-            Browserdaten, sind die Analysen weg – sichern Sie regelmäßig als .sba.json.
+            Browserdaten, sind die Analysen weg – sichern Sie regelmäßig. Die App erinnert nach 30 Tagen daran.
           </p>
         </Section>
       </article>

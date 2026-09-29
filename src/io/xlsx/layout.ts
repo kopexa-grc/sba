@@ -48,8 +48,9 @@ export const EXTRA_LABEL = {
   location: "Standort",
   assetId: "Asset-ID",
   versionId: "Versions-ID",
-  approval: "Freigabe",
-  hash: "Integritäts-Hash (SHA-256)",
+  closed: "Abgeschlossen",
+  scheme: "Bewertungsschema",
+  organization: "Organisation",
 } as const;
 
 /** Row (per goal) below each questionnaire block that carries a manual override. */
@@ -66,10 +67,11 @@ export const PLACEHOLDERS = [
 
 export const LEGACY_STATUS: Record<VersionStatus, string> = {
   draft: "in Bearbeitung",
-  review: "fachlich freigegeben",
-  approved: "freigegeben",
-  archived: "freigegeben",
+  final: "abgeschlossen",
 };
+
+/** Data validation list of the status cell: legacy values plus "abgeschlossen". */
+export const STATUS_OPTIONS = ["<bitte auswählen>", "in Bearbeitung", "abgeschlossen", "fachlich freigegeben", "freigegeben"];
 
 /** Kopexa navy (primary-950, oklch(26.35% 0.054 251.42)) and traffic light colours. */
 export const COLOR = {

@@ -5,7 +5,8 @@ import { describe, expect, it } from "vitest";
 import { CATALOG } from "../../domain/catalog";
 import { goalResult } from "../../domain/scoring";
 import { GOALS, LEVEL_LABEL, type AssessmentVersion, type AuditEntry, type Goal } from "../../domain/types";
-import { approve, newVersion, submitForReview } from "../../domain/versioning";
+import { DEFAULT_SNAPSHOT, defaultSettings } from "../../domain/scheme";
+import { closeVersion, newVersion } from "../../domain/versioning";
 import { exportVersionXlsx, xlsxFileName } from "./export";
 import { parseLegacyXlsx, readScenarioAt, XlsxImportError } from "./import";
 
@@ -116,7 +117,7 @@ describe("export", () => {
   });
 
   it("writes the expected sheets with cached formula results", async () => {
-    const v = await approve(submitForReview(completeVersion(), "alice"), "ciso");
+    const v = closeVersion(completeVersion(), "Alice");
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load((await exportVersionXlsx(v, [v], audit)) as unknown as ArrayBuffer);
     expect(wb.worksheets.map((w) => w.name)).toEqual(["Deckblatt", "Anwendung", "Audit-Trail", "Definitionen", "Hilfstabelle"]);
@@ -139,12 +140,47 @@ describe("export", () => {
     }
     expect((app.getCell("G9").value as ExcelJS.CellFormulaValue).result).toBe("Hoch");
     expect((app.getCell("G88").value as ExcelJS.CellFormulaValue).result).toBe("Sehr hoch");
-    expect(cover.getCell("D9").value).toBe("freigegeben");
+    expect(cover.getCell("D9").value).toBe("abgeschlossen");
+    expect(cover.getCell("D13").value).toBeNull();
     expect(cover.getCell("D7").value).toBe("1.0");
 
     const auditSheet = wb.getWorksheet("Audit-Trail")!;
     expect(auditSheet.getCell("H2").value).toBe("Art. 9 DSGVO");
     expect(auditSheet.getCell("A1").value).toBe("Zeitstempel (UTC)");
+  });
+
+  it("uses the version's rating scheme and the organization settings", async () => {
+    const v = completeVersion();
+    v.scheme = { ...DEFAULT_SNAPSHOT, name: "Mittelstand", revision: 3, financialHigh: 250_000, financialVeryHigh: 2_500_000, availabilityHighHours: 8, availabilityVeryHighHours: 2 };
+    const settings = defaultSettings();
+    settings.organization = {
+      name: "Muster GmbH",
+      logo: `data:image/png;base64,${readFileSync(new URL("../../../public/pwa-192.png", import.meta.url)).toString("base64")}`,
+    };
+    const data = await exportVersionXlsx(v, [v], audit, settings);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(data as unknown as ArrayBuffer);
+    const app = wb.getWorksheet("Anwendung")!;
+    const fin = CATALOG.I.scenarios.find((d) => d.id === "financial")!;
+    expect(String(app.getCell(`D${fin.options[1]!.row}`).value)).toContain("250.000");
+    const ops = CATALOG.A.scenarios.find((d) => d.id === "operations")!;
+    expect(String(app.getCell(`D${ops.options[2]!.row}`).value)).toContain("2 Stunden");
+    const defs = wb.getWorksheet("Definitionen")!;
+    const texts: string[] = [];
+    defs.eachRow((row) => row.eachCell((c) => texts.push(String(c.value))));
+    expect(texts.some((t) => t.includes("2.500.000"))).toBe(true);
+    const cover = wb.getWorksheet("Deckblatt")!;
+    const coverTexts: string[] = [];
+    cover.eachRow((row) => row.eachCell((c) => coverTexts.push(String(c.value))));
+    expect(coverTexts).toContain("Muster GmbH");
+    expect(coverTexts.some((t) => t.startsWith("Mittelstand (Stand 3)"))).toBe(true);
+    expect(cover.getImages()).toHaveLength(1);
+
+    // Import ignores the option texts, so a custom scheme still round-trips.
+    const r = await parseLegacyXlsx(data);
+    expect(r.answers).toEqual(v.answers);
+    expect(r.meta).toEqual(v.meta);
+    expect(r.issues).toEqual([]);
   });
 
   it("builds a readable file name", () => {

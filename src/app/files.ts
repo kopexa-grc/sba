@@ -1,6 +1,6 @@
 import { repo } from "../db/repo";
 import type { AssessmentVersion } from "../domain/types";
-import { verifyIntegrity, versionLabel } from "../domain/versioning";
+import { versionLabel } from "../domain/versioning";
 import { buildBundle, FILE_SUFFIX } from "../io/json";
 
 export function saveBlob(filename: string, blob: Blob) {
@@ -42,9 +42,13 @@ export function baseName(v: AssessmentVersion): string {
 }
 
 export async function exportXlsx(v: AssessmentVersion) {
-  const [{ exportVersionXlsx }, records] = await Promise.all([import("../io/xlsx/export"), repo.exportRecords([v.assetId])]);
+  const [{ exportVersionXlsx }, records, settings] = await Promise.all([
+    import("../io/xlsx/export"),
+    repo.exportRecords([v.assetId]),
+    repo.getSettings(),
+  ]);
   const r = records[0]!;
-  const data = await exportVersionXlsx(v, r.versions, r.audit);
+  const data = await exportVersionXlsx(v, r.versions, r.audit, settings);
   saveBlob(
     `${baseName(v)}.xlsx`,
     new Blob([data as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
@@ -52,15 +56,35 @@ export async function exportXlsx(v: AssessmentVersion) {
 }
 
 export async function exportPdf(v: AssessmentVersion) {
-  const [{ renderReportPdf }, history, integrity] = await Promise.all([
+  const [{ renderReportPdf }, history, settings] = await Promise.all([
     import("../io/pdf/report"),
     repo.versionsOf(v.assetId),
-    verifyIntegrity(v),
+    repo.getSettings(),
   ]);
-  saveBlob(`${baseName(v)}.pdf`, await renderReportPdf(v, history, { integrity }));
+  saveBlob(`${baseName(v)}.pdf`, await renderReportPdf(v, history, { settings }));
 }
 
-export async function exportJson(assetIds: string[] | undefined, exportedBy: string, name: string) {
-  const bundle = buildBundle(await repo.exportRecords(assetIds), exportedBy);
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function saveJson(name: string, bundle: unknown) {
   saveBlob(`${name}${FILE_SUFFIX}`, new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }));
+}
+
+/** Settings only (scheme, organization, measures) – to share with colleagues. */
+export async function exportSettings(exportedBy: string) {
+  saveJson(`SBA_Einstellungen_${today()}`, buildBundle({ settings: await repo.getSettings() }, exportedBy));
+}
+
+/** Settings plus every analysis with all versions and the change log. */
+export async function exportBackup(exportedBy: string) {
+  const [settings, assets] = await Promise.all([repo.getSettings(), repo.exportRecords()]);
+  saveJson(`SBA_Sicherung_${today()}`, buildBundle({ settings, assets }, exportedBy));
+  await repo.markBackup();
+}
+
+/** One analysis with all versions and its change log. */
+export async function exportAssessment(v: AssessmentVersion, exportedBy: string) {
+  saveJson(baseName(v), buildBundle({ assets: await repo.exportRecords([v.assetId]) }, exportedBy));
 }

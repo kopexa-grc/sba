@@ -1,3 +1,5 @@
+import type { SchemeSnapshot } from "./scheme";
+
 /** Protection goals ("Grundwerte"). */
 export type Goal = "C" | "I" | "A";
 
@@ -50,13 +52,12 @@ export const ASSET_TYPE_LABEL: Record<AssetType, string> = {
   room: "Physischer Raum",
 };
 
-export type VersionStatus = "draft" | "review" | "approved" | "archived";
+/** A version is edited as draft and closed (read-only) by its author. */
+export type VersionStatus = "draft" | "final";
 
 export const STATUS_LABEL: Record<VersionStatus, string> = {
-  draft: "Entwurf",
-  review: "In Prüfung",
-  approved: "Freigegeben",
-  archived: "Archiviert",
+  draft: "In Bearbeitung",
+  final: "Abgeschlossen",
 };
 
 /** Answer to one damage scenario of one goal. */
@@ -103,12 +104,6 @@ export interface AssetMeta {
 
 export type Answers = Record<Goal, Partial<Record<ScenarioId, ScenarioAnswer>>>;
 
-export interface Signoff {
-  at: string;
-  by: string;
-  comment?: string;
-}
-
 export interface AssessmentVersion {
   id: string;
   assetId: string;
@@ -127,16 +122,11 @@ export interface AssessmentVersion {
   createdBy: string;
   updatedAt: string;
   updatedBy: string;
-  /** Submitted for review ("fachlich freigegeben"). */
-  submitted: Signoff | null;
-  /** Final approval ("freigegeben"). */
-  approved: Signoff | null;
-  /** Rejections during review, newest last. */
-  rejections: Signoff[];
-  /** SHA-256 over the canonical payload, set when the version is approved. */
-  hash: string | null;
-  /** Set when a later version is approved and supersedes this one. */
-  supersededBy: string | null;
+  /** Set when the author closes the version; it is read-only afterwards. */
+  closedAt: string | null;
+  closedBy: string | null;
+  /** Rating scheme (thresholds) the version was assessed with. */
+  scheme: SchemeSnapshot;
 }
 
 export interface Asset {
@@ -146,17 +136,7 @@ export interface Asset {
   latestVersionId: string;
 }
 
-export type AuditAction =
-  | "create"
-  | "update"
-  | "submit"
-  | "reject"
-  | "approve"
-  | "branch"
-  | "supersede"
-  | "archive"
-  | "import"
-  | "delete-draft";
+export type AuditAction = "create" | "update" | "close" | "branch" | "import" | "delete-draft";
 
 export interface AuditEntry {
   id: string;

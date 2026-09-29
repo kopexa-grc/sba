@@ -162,10 +162,10 @@ export function Styleguide() {
         />
       </Block>
 
-      <Block title="Ergebnis" note="Ablesewerte statt Kacheln. Das Siegel ist eine Textzeile, rot nur bei Verletzung.">
+      <Block title="Ergebnis" note="Ablesewerte statt Kacheln, getrennt durch Linien.">
         <div className="grid gap-8 md:grid-cols-2">
-          <ResultSummary results={sample({ C: 3, I: 2, A: 1 })} integrity="valid" hash={"eb82815880".padEnd(64, "5a6")} approvedAt="2026-09-29T14:26:00Z" />
-          <ResultSummary results={sample({ C: 2, I: null, A: 1 }, false)} integrity="unsealed" hash={null} />
+          <ResultSummary results={sample({ C: 3, I: 2, A: 1 })} />
+          <ResultSummary results={sample({ C: 2, I: null, A: 1 }, false)} />
         </div>
       </Block>
 
@@ -194,7 +194,7 @@ export function Styleguide() {
           good={
             <div className="grid gap-2">
               <Meta items={["Version 1.1", <StatusText key="d" status="draft" />, "Anwendung", "Owner Vertrieb"]} />
-              <Meta items={["Version 1.0", <StatusText key="a" status="approved" />, "Anwendung"]} />
+              <Meta items={["Version 1.0", <StatusText key="a" status="final" />, "Anwendung"]} />
             </div>
           }
           bad={
@@ -209,12 +209,12 @@ export function Styleguide() {
 
       <Block title="Buttons" note="Eine Primäraktion pro Ansicht. Icons nur mit Bedeutung.">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="primary">Zur Prüfung einreichen</Button>
+          <Button variant="primary">Version abschließen</Button>
           <Button>Export</Button>
           <Button variant="ghost">Zurück</Button>
           <Button variant="danger">Endgültig löschen</Button>
           <Button variant="primary" disabled>
-            Freigeben
+            Speichern
           </Button>
           <Button size="sm">Klein</Button>
         </div>
