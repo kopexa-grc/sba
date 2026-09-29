@@ -22,11 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
 
       # publiccode.yml also carries the release date, which release-please does not know.
       - if: steps.release.outputs.pr
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
       - if: steps.release.outputs.pr
