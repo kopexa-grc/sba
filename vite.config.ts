@@ -1,7 +1,45 @@
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vitest/config";
+import { VitePWA } from "vite-plugin-pwa";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-})
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: "prompt",
+      includeAssets: ["favicon.svg", "apple-touch-icon.png"],
+      manifest: {
+        name: "Kopexa Schutzbedarfsanalyse",
+        short_name: "Kopexa SBA",
+        description:
+          "Schutzbedarfsanalyse nach BSI IT-Grundschutz 200-2 und ISO/IEC 27001 – lokal im Browser, revisionssicher versioniert.",
+        lang: "de",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        background_color: "#f6f7f9",
+        theme_color: "#10263e",
+        icons: [
+          { src: "pwa-192.png", sizes: "192x192", type: "image/png" },
+          { src: "pwa-512.png", sizes: "512x512", type: "image/png" },
+          { src: "pwa-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        // The PDF renderer and ExcelJS chunks are large but must work offline.
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        navigateFallback: "/index.html",
+      },
+    }),
+  ],
+  build: {
+    target: "es2022",
+    chunkSizeWarningLimit: 2500,
+  },
+  test: {
+    environment: "node",
+  },
+});

@@ -72,6 +72,26 @@ describe("repo", () => {
     expect(old?.supersededBy).toBe(next.id);
   });
 
+  it("requires a reason when a branched version re-rates via an open intermediate state", async () => {
+    const v = await readyDraft();
+    await repo.submit(v.id, "alice");
+    await repo.approve(v.id, "ciso");
+    const next = await repo.branch(v.id, "alice", "minor", "Rezertifizierung");
+    // Normal -> open (no reason needed for the intermediate step) ...
+    await repo.updateDraft(next.id, "alice", (x) => {
+      x.answers.I.financial = { applies: true, level: null, notes: "", explanation: "" };
+    });
+    // ... -> Hoch differs from the approved baseline and needs a reason.
+    const toHigh = (x: typeof v) => {
+      x.answers.I.financial = { applies: true, level: 2, notes: "", explanation: "x" };
+    };
+    expect(await repo.previewReclassifications(next.id, toHigh)).toMatchObject([
+      { path: "I.financial", oldValue: "Normal", newValue: "Hoch" },
+    ]);
+    await expect(repo.updateDraft(next.id, "alice", toHigh)).rejects.toThrow(WorkflowError);
+    await repo.updateDraft(next.id, "alice", toHigh, "Neuer Großkundenvertrag");
+  });
+
   it("round-trips through the JSON bundle", async () => {
     const v = await readyDraft();
     await repo.submit(v.id, "alice");

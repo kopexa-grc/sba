@@ -8,7 +8,9 @@ import {
   OVERRIDE_KIND_LABEL,
   type AssessmentVersion,
   type AssetMeta,
+  type Goal,
   type GoalOverride,
+  type ScenarioId,
 } from "./types";
 
 /**
@@ -87,6 +89,14 @@ export function diffVersions(a: AssessmentVersion, b: AssessmentVersion): Change
     });
   }
 
+  push({
+    path: "changeSummary",
+    label: "Anlass der Version",
+    kind: "context",
+    oldValue: text(a.changeSummary),
+    newValue: text(b.changeSummary),
+  });
+
   for (const goal of GOALS) {
     for (const def of CATALOG[goal].scenarios) {
       const pa = a.answers[goal]?.[def.id];
@@ -157,6 +167,31 @@ export function diffVersions(a: AssessmentVersion, b: AssessmentVersion): Change
     });
   }
   return out;
+}
+
+/**
+ * Rating changes from `current` to `next` that must be documented with a reason:
+ * a scenario or goal override that had a rating before - either in the current
+ * draft or in the approved baseline the draft was branched from - and now gets a
+ * different one. Comparing with the baseline closes the gap of re-rating in two
+ * steps via "open" (Normal -> open -> Hoch).
+ */
+export function reclassifications(
+  current: AssessmentVersion,
+  next: AssessmentVersion,
+  baseline: AssessmentVersion | null,
+): Change[] {
+  const baseValue = (path: string): string | null => {
+    if (!baseline) return null;
+    const [head, id] = path.split(".");
+    if (head === "override") return fmtOverride(baseline.overrides[id as Goal]);
+    return fmtLevel(scenarioLevel(baseline.answers[head as Goal]?.[id as ScenarioId]));
+  };
+  return diffVersions(current, next)
+    .filter((c) => c.isRating || /^[CIA]\.[a-z]+$/.test(c.path) || c.path.startsWith("override."))
+    .filter((c) => !c.path.endsWith(".reason") && c.newValue !== null)
+    .map((c) => ({ ...c, oldValue: c.oldValue ?? baseValue(c.path) }))
+    .filter((c) => c.oldValue !== null && c.oldValue !== c.newValue);
 }
 
 /** Aggregated protection level changes per goal (for the diff header). */

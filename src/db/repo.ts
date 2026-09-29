@@ -1,4 +1,4 @@
-import { diffVersions, type Change } from "../domain/diff";
+import { diffVersions, reclassifications, type Change } from "../domain/diff";
 import type { AssessmentVersion, Asset, AssetMeta, AuditAction, AuditEntry } from "../domain/types";
 import {
   approve as approveVersion,
@@ -24,16 +24,13 @@ export function actorLabel(id: Identity): string {
   return id.email ? `${id.name} <${id.email}>` : id.name;
 }
 
-/**
- * Changes of an existing rating (up- or downgrade) must be documented with a
- * reason. First-time answers do not need one.
- */
-export function needsReason(changes: Change[]): boolean {
-  return changes.some((c) => c.isRating && c.oldValue !== null);
-}
 
 export class Repo {
-  constructor(private readonly d: SbaDatabase = db) {}
+  private readonly d: SbaDatabase;
+
+  constructor(database: SbaDatabase = db) {
+    this.d = database;
+  }
 
   async getIdentity(): Promise<Identity | null> {
     const row = await this.d.settings.get("identity");
@@ -82,6 +79,10 @@ export class Repo {
     return list.sort(compareVersions);
   }
 
+  private async baseline(v: AssessmentVersion): Promise<AssessmentVersion | null> {
+    return v.parentVersionId ? ((await this.d.versions.get(v.parentVersionId)) ?? null) : null;
+  }
+
   /**
    * Applies a mutation to a draft and records one audit entry per changed field.
    * Throws if a rating is changed without a reason.
@@ -102,9 +103,11 @@ export class Repo {
       mutate(next);
       const changes = diffVersions(current, next);
       if (changes.length === 0) return changes;
-      if (needsReason(changes) && !reason?.trim()) {
+      const rerated = reclassifications(current, next, await this.baseline(current));
+      if (rerated.length > 0 && !reason?.trim()) {
         throw new WorkflowError("Die Änderung einer Einstufung erfordert einen Änderungsgrund.");
       }
+      const reratedPaths = new Set(rerated.map((c) => c.path));
       next.updatedAt = nowIso();
       next.updatedBy = actor;
       await this.d.versions.put(next);
@@ -114,7 +117,7 @@ export class Repo {
             field: c.label,
             oldValue: c.oldValue,
             newValue: c.newValue,
-            reason: c.isRating || reason ? (reason ?? null) : null,
+            reason: reratedPaths.has(c.path) || c.isRating ? (reason ?? null) : null,
           }),
         ),
       );
@@ -122,13 +125,13 @@ export class Repo {
     });
   }
 
-  /** Changes an update would produce, without saving (used to ask for a reason first). */
-  async previewChanges(versionId: string, mutate: (v: AssessmentVersion) => void): Promise<Change[]> {
+  /** Rating changes an update would make that need a documented reason (asked before saving). */
+  async previewReclassifications(versionId: string, mutate: (v: AssessmentVersion) => void): Promise<Change[]> {
     const current = await this.d.versions.get(versionId);
     if (!current) return [];
     const next = structuredClone(current);
     mutate(next);
-    return diffVersions(current, next);
+    return reclassifications(current, next, await this.baseline(current));
   }
 
   async submit(versionId: string, actor: string, comment?: string): Promise<void> {

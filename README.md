@@ -1,32 +1,50 @@
-# React + TypeScript + Vite
+# Kopexa Schutzbedarfsanalyse (SBA)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Progressive Web App für die Schutzbedarfsfeststellung nach **BSI IT-Grundschutz 200-2** und **ISO/IEC 27001** –
+Nachfolger des Excel-Bogens `FS_Schutzbedarfsanalyse_neu.xlsx`.
 
-Currently, two official plugins are available:
+**Live:** https://schutzbedarf.kopexa.com
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Geführter Wizard: Asset & Scope → Vertraulichkeit → Integrität → Verfügbarkeit → Ergebnis
+- Maximumprinzip live, Sondereffekte (Kumulation, Verteilung, Vererbung) als begründete Übersteuerung
+- Begründungspflicht für „Hoch“ und „Sehr hoch“, Plausibilitätsprüfung vor dem Einreichen
+- Workflow Entwurf → In Prüfung → Freigegeben; Freigabe versiegelt die Version mit SHA-256
+- Versionierung (Minor/Major), feldgenauer Audit-Trail mit Änderungsgrund, visueller Versionsvergleich
+- XLSX-Import des Legacy-Bogens (inkl. Zeilenzuordnung und Auflösung von „Eingabe prüfen!“-Widersprüchen)
+- XLSX-Prüfbericht (Deckblatt, Anwendung mit Originalformeln, Audit-Trail, Definitionen), PDF-Executive-Report,
+  JSON-Sicherung (`.sba.json`, schema-versioniert)
+- Offline-first: alle Daten in IndexedDB, keine Serverkommunikation, installierbar
 
-## React Compiler
+## Entwicklung
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+pnpm install
+pnpm dev        # http://localhost:5173
+pnpm test       # Vitest: Scoring, Versionierung, Repo, XLSX, PDF
+pnpm typecheck
+pnpm build      # dist/ inkl. Service Worker und 404.html (SPA-Fallback für GitHub Pages)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Aufbau
+
+| Pfad | Inhalt |
+| --- | --- |
+| `src/domain` | Fragenkatalog (1:1 aus dem Excel, mit Zellkoordinaten), Scoring, Versionierung/Hash, Diff, Definitionen, Maßnahmen |
+| `src/db` | Dexie-Datenbank und Repository (auditierte Änderungen, Workflow-Übergänge, Import/Export) |
+| `src/io` | JSON-Sicherung, `xlsx/` (ExcelJS Import/Export), `pdf/` (react-pdf Report) – XLSX/PDF werden lazy geladen |
+| `src/workspace` | Wizard-Schritte, Ergebnis, Historie, Vergleich, Workflow-Aktionen |
+| `src/pages` | Übersicht, Analyse, Handbuch, Einstellungen, Styleguide |
+| `docs/STYLEGUIDE.md` | Design-Tokens und Komponentenregeln (Kopexa-CI) |
+
+## Methodische Hinweise
+
+- Wie im Referenzbogen wird „Beeinträchtigung der persönlichen Unversehrtheit“ für Vertraulichkeit nicht bewertet
+  (17 statt 18 Szenarien).
+- Die Frage zu Leib & Leben bei Verfügbarkeit ist sprachlich auf Ausfall statt Manipulation korrigiert (im Excel kopiert).
+- Eine neue Version löst die bisher freigegebene erst bei ihrer eigenen Freigabe ab; bis dahin bleibt die alte gültig.
+- Änderungsgründe sind Pflicht, wenn sich eine bestehende Einstufung ändert – auch gegenüber der freigegebenen Vorversion.
+
+## Deployment
+
+Push auf `main` → GitHub Actions (Typecheck, Tests, Build) → GitHub Pages. Custom Domain über `public/CNAME`
+(`schutzbedarf.kopexa.com`); DNS: `CNAME schutzbedarf → kopexa-grc.github.io`.
