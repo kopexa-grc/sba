@@ -1,0 +1,48 @@
+name: Release
+
+# release-please keeps a release PR open that bumps the version (package.json,
+# publiccode.yml) and CHANGELOG.md from conventional commits. Merging it tags
+# vX.Y.Z and publishes the GitHub release.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v4
+
+      # publiccode.yml also carries the release date, which release-please does not know.
+      - if: steps.release.outputs.pr
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+      - if: steps.release.outputs.pr
+        run: |
+          sed -i -E "s/^releaseDate: .*/releaseDate: \"$(date -u +%F)\"/" publiccode.yml
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -am "chore: set release date"
+            git push
+          fi
+
+      # PRs opened with GITHUB_TOKEN do not start other workflows; run CI on the
+      # release branch explicitly so its required checks exist.
+      - if: steps.release.outputs.pr
+        run: gh workflow run deploy.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"
+        env:
+          BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

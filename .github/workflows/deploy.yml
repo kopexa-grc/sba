@@ -6,15 +6,20 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Merges by the auto-merge workflow do not trigger a push run, so dependency
+  # updates from Dependabot (1st of the month) are deployed by this run.
+  schedule:
+    - cron: "0 6 3 * *"
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# PR runs are independent of each other; a newer push to the same PR cancels the older run.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -37,7 +42,7 @@ jobs:
         if: vars.PAGES_CNAME != ''
         run: echo "${{ vars.PAGES_CNAME }}" > dist/CNAME
       - uses: actions/upload-pages-artifact@v4
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           path: dist
 
@@ -64,9 +69,13 @@ jobs:
           retention-days: 7
 
   deploy:
-    if: github.event_name != 'pull_request'
+    # Release PR branches are checked via workflow_dispatch but never deployed.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: [build, e2e]
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

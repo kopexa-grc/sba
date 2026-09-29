@@ -1,0 +1,28 @@
+# Monthly dependency updates. CI runs on every update PR and
+# .github/workflows/dependabot-automerge.yml merges it once all checks pass.
+version: 2
+updates:
+  - package-ecosystem: npm # also covers pnpm-lock.yaml
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 10
+    groups:
+      # Minor and patch updates in one PR; major updates get their own PR each,
+      # so one breaking release does not hold back the others.
+      dependencies:
+        update-types: [minor, patch]
+    # Runtime updates appear in the changelog and cause a patch release; dev tooling does not.
+    commit-message:
+      prefix: "fix(deps)"
+      prefix-development: "chore(deps)"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(ci)"
