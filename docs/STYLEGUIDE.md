@@ -109,6 +109,17 @@ Radien: 6 px für Controls, 8 px für Container, 4 px für Kleinteile. Nie grö�
 ### Navigation (Schritte)
 - Liste aus Textlinks; aktiv: Fläche `surface`, Text `ink` semibold. Rechts klein der Fortschritt (`3/6`) oder `LevelMark` kompakt.
 
+### Menüs (Radix, im Stil von shadcn/ui)
+- Umsetzung auf `@radix-ui/react-menubar` und `@radix-ui/react-dropdown-menu` (`src/components/menu.tsx`) – Tastatur,
+  Fokus, Tippsuche und Platzierung im Viewport kommen von Radix; die Optik aus den Tokens dieses Guides.
+- **Menü „Datei“** in der Kopfzeile, auf jeder Seite an derselben Stelle: Neu, Öffnen, Importieren · Speichern
+  (Analyse, alle, Einstellungen) · Berichte exportieren. Gruppen durch Linien, Tastenkürzel rechts in `muted`
+  (⌘S/Strg+S, ⌘O/Strg+O, ⇧⌘S) und als `aria-keyshortcuts`.
+- `.sba` ist das eigene Dateiformat: „Speichern/Öffnen“. PDF, XLSX und ODS sind Berichte: „Exportieren“. Fremde Bögen:
+  „Importieren“.
+- Kontextaktionen einer Seite (z. B. Löschen) in einem „⋯“-Dropdown; destruktive Einträge `red-700`.
+- Menüflächen: Weiß, 1‑px-Rahmen, Radius 6 px, Overlay-Schatten, Einträge 13.5 px, hervorgehoben mit `surface`.
+
 ### Dialog, Menü, Toast
 - Einzige Elemente mit Schatten. Dialog: Titel 16 semibold, Aktionen rechts, Primäraktion ganz rechts.
 - Menüeinträge ohne Icons; destruktive Einträge durch Linie abgetrennt, Text `red-700`.

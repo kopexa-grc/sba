@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createAnalysis, expectNoA11yViolations, gotoStep, openApp, openDialog, pickLevel, skipTours } from "./helpers";
+import { createAnalysis, expectNoA11yViolations, fileMenu, fileMenuSelect, gotoStep, openApp, openDialog, pickLevel, skipTours } from "./helpers";
 
 const STEPS = ["stammdaten", "C", "I", "A", "ergebnis", "historie", "vergleich"] as const;
 
@@ -56,15 +56,15 @@ test.describe("axe (WCAG 2.2 AA)", () => {
     await expectNoA11yViolations(page, info, "dialog-new-analysis");
     await page.keyboard.press("Escape");
 
-    await page.getByRole("button", { name: "Bogen importieren" }).first().click();
+    await fileMenuSelect(page, /Erhebungsbogen importieren/);
     await expect(openDialog(page)).toBeVisible();
     await expectNoA11yViolations(page, info, "dialog-import");
     await page.keyboard.press("Escape");
 
     const base = await createAnalysis(page, "Axe Dialoge");
-    await page.getByRole("button", { name: "Export" }).click();
+    await fileMenu(page).click();
     await expect(page.getByRole("menu")).toBeVisible();
-    await expectNoA11yViolations(page, info, "export-menu");
+    await expectNoA11yViolations(page, info, "file-menu");
     await page.keyboard.press("Escape");
 
     // Reason dialog: rate, then re-rate an existing rating.
@@ -138,12 +138,12 @@ test.describe("keyboard", () => {
     expect(stillInGroup, "Tab should leave the Ja/Nein group after one stop (roving tabindex)").toBe(false);
   });
 
-  test("export menu: Enter opens, arrows move, Escape closes and restores focus", async ({ page }) => {
+  test("file menu: Enter opens, arrows move, Escape closes and restores focus", async ({ page }) => {
     await createAnalysis(page, "Menü");
-    const button = page.getByRole("button", { name: "Export" });
+    const button = fileMenu(page);
     await button.focus();
     await page.keyboard.press("Enter");
-    const items = page.getByRole("menuitem");
+    const items = page.getByRole("menu").getByRole("menuitem");
     await expect(items.first()).toBeFocused();
     await page.keyboard.press("ArrowDown");
     await expect(items.nth(1)).toBeFocused();
@@ -236,13 +236,13 @@ test.describe("reflow and zoom", () => {
     }
   });
 
-  test("export menu stays fully visible on phones", async ({ page }) => {
+  test("file menu stays fully visible on phones", async ({ page }) => {
     const base = await createAnalysis(page, "Menü mobil");
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto(`${base}/stammdaten`);
-      await page.getByRole("button", { name: "Export" }).click();
-      const items = page.getByRole("menuitem");
+      await fileMenu(page).click();
+      const items = page.getByRole("menu").getByRole("menuitem");
       await expect(items.first()).toBeVisible();
       for (const box of await items.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()))) {
         expect(box.left, `menu item cut off on the left at ${width}px`).toBeGreaterThanOrEqual(0);

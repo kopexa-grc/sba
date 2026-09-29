@@ -66,13 +66,20 @@ export async function clickExpectingDialog(page: Page, trigger: Locator, expecte
   return target;
 }
 
-/** Selects an export menu item and returns the download; handles a name prompt in between. */
+/** The "Datei" trigger in the application menu bar. */
+export function fileMenu(page: Page): Locator {
+  return page.getByRole("menubar").getByRole("menuitem", { name: "Datei" });
+}
+
+/** Opens the "Datei" menu and selects an item. */
+export async function fileMenuSelect(page: Page, item: RegExp | string) {
+  await fileMenu(page).click();
+  await page.getByRole("menu").getByRole("menuitem", { name: item }).click();
+}
+
+/** Selects an item of the "Datei" menu and returns the download; handles a name prompt in between. */
 export async function exportVia(page: Page, item: RegExp): Promise<Download> {
-  const menuButton = page.getByRole("button", { name: "Export" });
-  const pick = async () => {
-    await menuButton.click();
-    await page.getByRole("menuitem", { name: item }).click();
-  };
+  const pick = () => fileMenuSelect(page, item);
   const downloadPromise = page.waitForEvent("download", { timeout: 45_000 });
   await pick();
   const nameDialog = openDialog(page).filter({ hasText: NAME_DIALOG });

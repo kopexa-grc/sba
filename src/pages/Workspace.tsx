@@ -2,6 +2,7 @@ import { Check, ChevronLeft, Lock } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Navigate, NavLink, useLocation, useNavigate, useParams } from "react-router";
 import { useAudit, useVersion, useVersions } from "../app/data";
+import { useCurrentVersion } from "../app/file-actions";
 import { useSession } from "../app/session";
 import { LevelMark, ResultSummary } from "../components/level";
 import { Tour, WORKSPACE_TOUR } from "../components/Tour";
@@ -39,6 +40,7 @@ export function Workspace() {
   const version = useVersion(versionId);
   const versions = useVersions(assetId);
   const audit = useAudit(assetId);
+  useCurrentVersion(version);
   const navigate = useNavigate();
   const { hash } = useLocation();
   const { notify } = useSession();

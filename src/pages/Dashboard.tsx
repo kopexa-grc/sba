@@ -3,32 +3,27 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAssetList, type AssetRow } from "../app/data";
-import { exportBackup, pickFile } from "../app/files";
+import { useFileActions } from "../app/file-actions";
 import { useSession } from "../app/session";
-import { ImportBundleDialog } from "../components/ImportBundle";
 import { OVERVIEW_TOUR, Tour } from "../components/Tour";
-import { ImportXlsxDialog } from "../components/ImportXlsx";
 import { StatusText } from "../components/StatusBadge";
 import { TriadMarks } from "../components/level";
-import { Button, Dialog, Empty, Field, Input, Notice, Select, cn } from "../components/ui";
+import { Button, Empty, Input, Notice, Select, cn } from "../components/ui";
 import { repo } from "../db/repo";
 import { allResults, progress } from "../domain/scoring";
-import { ASSET_TYPE_LABEL, STATUS_LABEL, type AssetType, type VersionStatus } from "../domain/types";
+import { ASSET_TYPE_LABEL, STATUS_LABEL, type VersionStatus } from "../domain/types";
 import { versionLabel } from "../domain/versioning";
-import { BundleError, FILE_ACCEPT, readBundleFile, type ParsedBundle } from "../io/json";
 import { usePageTitle } from "../lib/a11y";
 import { actorName, formatDate } from "../lib/format";
 
 export function Dashboard() {
   usePageTitle("Analysen");
+  const files = useFileActions();
   const navigate = useNavigate();
   const rows = useAssetList();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<VersionStatus | "all">("all");
-  const [creating, setCreating] = useState(false);
-  const [xlsxOpen, setXlsxOpen] = useState(false);
-  const [bundle, setBundle] = useState<ParsedBundle | null>(null);
-  const { actor, notify, guard } = useSession();
+  const { actor, guard } = useSession();
   const lastBackup = useLiveQuery(() => repo.lastBackupAt());
 
   const filtered = useMemo(() => {
@@ -40,16 +35,6 @@ export function Dashboard() {
       return [m.name, m.owner, m.orgUnit, m.assessor, ASSET_TYPE_LABEL[m.type]].some((s) => s.toLowerCase().includes(q));
     });
   }, [rows, query, status]);
-
-  async function openBundle() {
-    const file = await pickFile(FILE_ACCEPT);
-    if (!file) return;
-    try {
-      setBundle(await readBundleFile(await file.arrayBuffer()));
-    } catch (e) {
-      notify(e instanceof BundleError ? e.message : "Die Datei konnte nicht gelesen werden.", "error");
-    }
-  }
 
   async function createSample() {
     const v = await guard(() => repo.createSample(actor));
@@ -72,13 +57,7 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button data-tour="import" onClick={() => setXlsxOpen(true)}>
-            Bogen importieren
-          </Button>
-          <Button onClick={openBundle}>
-            Datei öffnen
-          </Button>
-          <Button data-tour="new-analysis" variant="primary" onClick={() => setCreating(true)}>
+          <Button data-tour="new-analysis" variant="primary" onClick={files.newAnalysis}>
             Neue Analyse
           </Button>
         </div>
@@ -88,7 +67,7 @@ export function Dashboard() {
         <Notice tone="warning" className="mt-6">
           {lastBackup ? `Zuletzt als Datei gespeichert am ${formatDate(lastBackup)}.` : "Noch nicht als Datei gespeichert."} Ihre
           Analysen liegen nur in diesem Browser.{" "}
-          <button type="button" className="text-primary-700 underline underline-offset-2" onClick={() => guard(() => exportBackup(actor))}>
+          <button type="button" className="text-primary-700 underline underline-offset-2" onClick={files.saveAll}>
             Jetzt als Datei speichern
           </button>
         </Notice>
@@ -100,13 +79,13 @@ export function Dashboard() {
             title="Noch keine Analysen"
             action={
               <>
-                <Button variant="primary" onClick={() => setCreating(true)}>
+                <Button variant="primary" onClick={files.newAnalysis}>
                   Analyse anlegen
                 </Button>
                 <Button data-tour="sample" onClick={createSample}>
                   Beispiel ansehen
                 </Button>
-                <Button onClick={() => setXlsxOpen(true)}>
+                <Button onClick={files.importSheet}>
                   Erhebungsbogen übernehmen
                 </Button>
               </>
@@ -145,23 +124,12 @@ export function Dashboard() {
             <span className="text-[12.5px] text-muted tabular">
               {filtered.length} von {rows.length}
             </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="ml-auto"
-              onClick={() => guard(() => exportBackup(actor))}
-            >
-              Alle Analysen speichern
-            </Button>
           </div>
           <AssetTable rows={filtered} />
         </>
       )}
 
       <Tour id="overview" steps={rows.length === 0 ? OVERVIEW_TOUR : OVERVIEW_TOUR.filter((s) => s.target !== "sample")} />
-      <NewAssetDialog open={creating} onClose={() => setCreating(false)} />
-      <ImportXlsxDialog open={xlsxOpen} onClose={() => setXlsxOpen(false)} />
-      <ImportBundleDialog bundle={bundle} onClose={() => setBundle(null)} />
     </div>
   );
 }
@@ -221,67 +189,3 @@ function AssetTable({ rows }: { rows: AssetRow[] }) {
   );
 }
 
-function NewAssetDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { actor, identity, guard } = useSession();
-  const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [type, setType] = useState<AssetType>("application");
-  const [owner, setOwner] = useState("");
-
-  async function create() {
-    const v = await guard(() => repo.createAsset(actor, { name: name.trim(), type, owner: owner.trim(), assessor: identity?.name ?? "" }));
-    if (!v) return;
-    setName("");
-    setOwner("");
-    onClose();
-    navigate(`/a/${v.assetId}/v/${v.id}`);
-  }
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title="Neue Schutzbedarfsanalyse"
-      description="Pro Asset eine Analyse – so bleibt jede Einstufung einzeln nachvollziehbar."
-      footer={
-        <>
-          <Button onClick={onClose}>Abbrechen</Button>
-          <Button variant="primary" disabled={!name.trim()} onClick={create}>
-            Analyse anlegen
-          </Button>
-        </>
-      }
-    >
-      <form
-        className="grid gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (name.trim()) create();
-        }}
-      >
-        <Field label="Asset-Bezeichnung" required>
-          {(id) => (
-            <Input id={id} autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. SAP S/4HANA Core, Kunden-CRM" />
-          )}
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Asset-Typ">
-            {(id) => (
-              <Select id={id} value={type} onChange={(e) => setType(e.target.value as AssetType)}>
-                {(Object.keys(ASSET_TYPE_LABEL) as AssetType[]).map((t) => (
-                  <option key={t} value={t}>
-                    {ASSET_TYPE_LABEL[t]}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label="Asset-Owner">
-            {(id) => <Input id={id} value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Name / Abteilung" />}
-          </Field>
-        </div>
-        <button type="submit" hidden />
-      </form>
-    </Dialog>
-  );
-}

@@ -1,19 +1,5 @@
 import { expect, test } from "@playwright/test";
-import {
-  FIXTURES,
-  answerAllNein,
-  answerGate,
-  clickExpectingDialog,
-  createAnalysis,
-  downloadBytes,
-  exportVia,
-  fillAndCommit,
-  gotoStep,
-  openApp,
-  pickLevel,
-  openDialog,
-  skipTours,
-} from "./helpers";
+import { FIXTURES, answerAllNein, answerGate, clickExpectingDialog, createAnalysis, downloadBytes, exportVia, fileMenuSelect, fillAndCommit, gotoStep, openApp, openDialog, pickLevel, skipTours } from "./helpers";
 
 test.describe("core flows", () => {
   test.beforeEach(async ({ page }) => {
@@ -84,11 +70,19 @@ test.describe("core flows", () => {
     // The app's own file format is saved via its own button, not the export menu.
     const [sbaDownload] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByRole("button", { name: "Als Datei speichern" }).click(),
+      fileMenuSelect(page, /^„.*“ als Datei speichern/),
     ]);
     expect(sbaDownload.suggestedFilename()).toMatch(/\.sba$/);
     const sba = await downloadBytes(sbaDownload);
     expect([sba[0], sba[1]]).toEqual([0x1f, 0x8b]);
+  });
+
+  test("keyboard shortcut saves the open analysis as .sba", async ({ page }) => {
+    await createAnalysis(page, "Tastenkürzel");
+    const [download] = await Promise.all([page.waitForEvent("download"), page.keyboard.press("ControlOrMeta+s")]);
+    expect(download.suggestedFilename()).toMatch(/^SBA_Tastenkurzel_.*\.sba$/);
+    const bytes = await downloadBytes(download);
+    expect([bytes[0], bytes[1]]).toEqual([0x1f, 0x8b]);
   });
 
   test("custom rating scheme flows into new analyses", async ({ page }) => {
@@ -140,7 +134,7 @@ test.describe("core flows", () => {
   for (const file of ["FS_Schutzbedarfsanalyse_neu.xlsx", "FS_Schutzbedarfsanalyse_neu.ods"]) {
     test(`legacy import: ${file}`, async ({ page }) => {
       await page.goto("/");
-      await page.getByRole("button", { name: "Bogen importieren" }).first().click();
+      await fileMenuSelect(page, /Erhebungsbogen importieren/);
       await openDialog(page).locator('input[type="file"]').setInputFiles(FIXTURES + file);
       const review = openDialog(page).filter({ hasText: "Bogen prüfen und übernehmen" });
       await expect(review).toBeVisible();
@@ -168,7 +162,7 @@ test.describe("first visit (contract)", () => {
     await skipTours(page);
     await page.goto("/");
     await expect(page.getByRole("button", { name: "Analyse anlegen" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Bogen importieren" }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Erhebungsbogen übernehmen" })).toBeVisible();
     // CONTRACT: sample analysis.
     await page.getByRole("button", { name: "Beispiel ansehen" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Beispiel: Kunden-CRM" })).toBeVisible();

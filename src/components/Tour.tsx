@@ -222,14 +222,19 @@ export const OVERVIEW_TOUR: TourStep[] = [
     body: "Das Beispiel zeigt eine fertig ausgefüllte Analyse eines Kunden-CRM. Sie können es jederzeit wieder löschen.",
   },
   {
-    target: "import",
-    title: "Vorhandene Bögen übernehmen",
-    body: "Ausgefüllte Erhebungsbögen im Excel- oder OpenDocument-Format lassen sich importieren und als Entwurf weiterbearbeiten.",
+    target: "file-menu",
+    title: "Menü „Datei“",
+    body: (
+      <>
+        Wie in einem Desktop-Programm: Datei öffnen, Erhebungsbögen aus Excel oder LibreOffice importieren, speichern (⌘S bzw.
+        Strg+S) und Berichte exportieren.
+      </>
+    ),
   },
   {
     target: "settings",
-    title: "Einstellungen, Speichern und Öffnen",
-    body: "Hier legen Sie Schwellenwerte, Organisation und Logo fest. Alle Analysen lassen sich als .sba-Datei speichern und später wieder öffnen.",
+    title: "Einstellungen",
+    body: "Hier legen Sie Schwellenwerte, Organisation und Logo fest – für neue Analysen und die Berichte.",
   },
 ];
 
@@ -250,8 +255,8 @@ export const WORKSPACE_TOUR: TourStep[] = [
     body: "Sind alle Begründungen erfasst, schließen Sie die Version ab. Spätere Änderungen entstehen als neue Version und bleiben vergleichbar.",
   },
   {
-    target: "export",
-    title: "Bericht exportieren",
-    body: "PDF für die Geschäftsleitung oder eine Tabelle für Excel und LibreOffice. Mit „Als Datei speichern“ sichern Sie die Analyse im Dateiformat der App.",
+    target: "file-menu",
+    title: "Speichern und exportieren",
+    body: "Im Menü „Datei“ speichern Sie diese Analyse als .sba-Datei (⌘S bzw. Strg+S) und exportieren den PDF-Bericht oder eine Tabelle für Excel und LibreOffice.",
   },
 ];

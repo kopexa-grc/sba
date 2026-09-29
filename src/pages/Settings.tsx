@@ -2,9 +2,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { useSettings } from "../app/data";
-import { exportBackup, exportSettings, pickFile } from "../app/files";
+import { useFileActions } from "../app/file-actions";
 import { useSession } from "../app/session";
-import { ImportBundleDialog } from "../components/ImportBundle";
 import { LevelBars } from "../components/level";
 import { Button, Dialog, Field, Input, Notice, Textarea, cn } from "../components/ui";
 import { db } from "../db/db";
@@ -20,7 +19,7 @@ import {
   type Settings,
 } from "../domain/scheme";
 import { GOALS, GOAL_EN, GOAL_LABEL } from "../domain/types";
-import { BundleError, FILE_ACCEPT, readBundleFile, SCHEMA_VERSION, type ParsedBundle } from "../io/json";
+import { SCHEMA_VERSION } from "../io/json";
 import { usePageTitle } from "../lib/a11y";
 import { formatDate } from "../lib/format";
 
@@ -89,10 +88,10 @@ function NumberField({
 
 export function SettingsPage() {
   usePageTitle("Einstellungen");
+  const files = useFileActions();
   const stored = useSettings();
-  const { identity, editIdentity, actor, notify, guard } = useSession();
+  const { identity, editIdentity, notify, guard } = useSession();
   const [draft, setDraft] = useState<Settings | null>(null);
-  const [bundle, setBundle] = useState<ParsedBundle | null>(null);
   const [wipe, setWipe] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const storage = useLiveQuery(async () => ({
@@ -101,9 +100,15 @@ export function SettingsPage() {
     lastBackup: await repo.lastBackupAt(),
   }));
 
+  // Take over stored settings on load and whenever they change underneath (e.g. a file was opened).
+  const storedJson = stored ? JSON.stringify(stored) : null;
+  const [baseline, setBaseline] = useState<string | null>(null);
   useEffect(() => {
-    if (stored && !draft) setDraft(structuredClone(stored));
-  }, [stored, draft]);
+    if (!stored || storedJson === baseline) return;
+    const untouched = !draft || JSON.stringify(draft) === baseline;
+    setBaseline(storedJson);
+    if (untouched) setDraft(structuredClone(stored));
+  }, [stored, storedJson, baseline, draft]);
 
   const dirty = useMemo(() => !!stored && !!draft && JSON.stringify(stored) !== JSON.stringify(draft), [stored, draft]);
   if (!stored || !draft) return null;
@@ -130,16 +135,6 @@ export function SettingsPage() {
         ? `Gespeichert. Neue Analysen und Versionen verwenden Schema-Stand ${saved.scheme.revision}.`
         : "Gespeichert.",
     );
-  }
-
-  async function openFile() {
-    const file = await pickFile(FILE_ACCEPT);
-    if (!file) return;
-    try {
-      setBundle(await readBundleFile(await file.arrayBuffer()));
-    } catch (e) {
-      notify(e instanceof BundleError ? e.message : "Die Datei konnte nicht gelesen werden.", "error");
-    }
   }
 
   const fin = preview.I.scenarios.find((s) => s.id === "financial")!;
@@ -331,21 +326,21 @@ export function SettingsPage() {
                 {storage?.lastBackup ? ` Zuletzt am ${formatDate(storage.lastBackup)}.` : " Noch nicht gespeichert."}
               </div>
             </div>
-            <Button onClick={() => guard(() => exportBackup(actor))}>Alles speichern</Button>
+            <Button onClick={files.saveAll}>Alles speichern</Button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
             <div className="text-[14px]">
               Einstellungen weitergeben
               <div className="text-[13px] text-muted">Organisation, Bewertungsschema und Maßnahmen – ohne Analysen.</div>
             </div>
-            <Button onClick={() => guard(() => exportSettings(actor))}>Einstellungen als Datei speichern</Button>
+            <Button onClick={files.saveSettings}>Einstellungen als Datei speichern</Button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
             <div className="text-[14px]">
               Datei öffnen
               <div className="text-[13px] text-muted">Gespeicherte Analysen oder weitergegebene Einstellungen (.sba).</div>
             </div>
-            <Button onClick={openFile}>Datei öffnen</Button>
+            <Button onClick={files.openFile}>Datei öffnen</Button>
           </div>
         </div>
       </Block>
@@ -399,13 +394,6 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <ImportBundleDialog
-        bundle={bundle}
-        onClose={() => {
-          setBundle(null);
-          setDraft(null);
-        }}
-      />
 
       <Dialog
         open={wipe}

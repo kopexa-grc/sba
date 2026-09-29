@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { LevelBars, LevelMark, ResultSummary, TriadMarks } from "../components/level";
 import { StatusText } from "../components/StatusBadge";
+import { MenubarContent, MenubarItem, MenubarMenu, MenubarRoot, MenubarSeparator, MenubarTrigger, Shortcut } from "../components/menu";
 import { Button, Empty, Field, Input, Meta, Notice, Segmented, Select, Textarea, cn } from "../components/ui";
 import type { GoalResult } from "../domain/scoring";
 import type { Goal } from "../domain/types";
@@ -220,6 +221,27 @@ export function Styleguide() {
           </Button>
           <Button size="sm">Klein</Button>
         </div>
+      </Block>
+
+      <Block title="Menüs" note="Radix Menubar/Dropdown mit App-Tokens. „Datei“ bündelt Neu, Öffnen, Importieren, Speichern und Export.">
+        <MenubarRoot aria-label="Beispielmenü">
+          <MenubarMenu>
+            <MenubarTrigger>Datei</MenubarTrigger>
+            <MenubarContent>
+              <MenubarItem>Neue Analyse …</MenubarItem>
+              <MenubarItem>
+                Datei öffnen …<Shortcut>⌘O</Shortcut>
+              </MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem>
+                Als Datei speichern<Shortcut>⌘S</Shortcut>
+              </MenubarItem>
+              <MenubarItem disabled>Deaktivierter Eintrag</MenubarItem>
+              <MenubarSeparator />
+              <MenubarItem danger>Destruktive Aktion …</MenubarItem>
+            </MenubarContent>
+          </MenubarMenu>
+        </MenubarRoot>
       </Block>
 
       <Block title="Formulare" note="Label darüber, Pflicht als Text, Fokus als Navy-Rahmen ohne Glow.">

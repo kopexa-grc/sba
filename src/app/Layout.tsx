@@ -3,13 +3,9 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { Button, cn } from "../components/ui";
-import { ImportBundleDialog } from "../components/ImportBundle";
-import { BundleError, readBundleFile, type ParsedBundle } from "../io/json";
+import { FileMenu } from "../components/FileMenu";
 import { useRouteFocus } from "../lib/a11y";
-
-interface LaunchQueue {
-  setConsumer(consumer: (params: { files?: { getFile(): Promise<File> }[] }) => void): void;
-}
+import { FileActionsProvider } from "./file-actions";
 import { useSession } from "./session";
 
 function useOnline() {
@@ -39,7 +35,7 @@ export function Logo({ className }: { className?: string }) {
 }
 
 export function Layout() {
-  const { identity, editIdentity, notify } = useSession();
+  const { identity, editIdentity } = useSession();
   const online = useOnline();
   const {
     needRefresh: [needRefresh],
@@ -47,21 +43,6 @@ export function Layout() {
   } = useRegisterSW();
 
   useRouteFocus();
-  const [opened, setOpened] = useState<ParsedBundle | null>(null);
-
-  // .sba files opened from the operating system (installed app, Chromium).
-  useEffect(() => {
-    const queue = (window as unknown as { launchQueue?: LaunchQueue }).launchQueue;
-    queue?.setConsumer(async (params) => {
-      const handle = params.files?.[0];
-      if (!handle) return;
-      try {
-        setOpened(await readBundleFile(await (await handle.getFile()).arrayBuffer()));
-      } catch (e) {
-        notify(e instanceof BundleError ? e.message : "Die Datei konnte nicht geöffnet werden.", "error");
-      }
-    });
-  }, [notify]);
 
   const nav = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -70,6 +51,7 @@ export function Layout() {
     );
 
   return (
+    <FileActionsProvider>
     <div className="flex min-h-dvh flex-col">
       <a
         href="#inhalt"
@@ -79,13 +61,14 @@ export function Layout() {
       </a>
       <header className="no-print sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-sm">
         <div className="mx-auto flex h-13 max-w-[1280px] items-center gap-2 px-4 sm:gap-3 sm:px-6">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="Kopexa Schutzbedarfsanalyse – Übersicht">
             <Logo className="size-6" />
-            <span className="text-[14px] leading-none font-semibold">
-              Kopexa <span className="hidden font-normal text-muted sm:inline">Schutzbedarfsanalyse</span>
-              <span className="font-normal text-muted sm:hidden">SBA</span>
+            <span className="hidden text-[14px] leading-none font-semibold min-[400px]:inline">
+              Kopexa <span className="hidden font-normal text-muted md:inline">Schutzbedarfsanalyse</span>
+              <span className="font-normal text-muted md:hidden">SBA</span>
             </span>
           </Link>
+          <FileMenu />
           <nav aria-label="Hauptnavigation" className="ml-auto flex items-center gap-0.5">
             <NavLink to="/" end className={nav}>
               Analysen
@@ -118,8 +101,6 @@ export function Layout() {
         </div>
       )}
 
-      <ImportBundleDialog bundle={opened} onClose={() => setOpened(null)} />
-
       <main id="inhalt" tabIndex={-1} className="flex-1 focus:outline-none">
         <Outlet />
       </main>
@@ -150,5 +131,6 @@ export function Layout() {
         </div>
       </footer>
     </div>
+    </FileActionsProvider>
   );
 }
