@@ -221,15 +221,16 @@ export function Help() {
               <strong>PDF-Bericht:</strong> Management Summary, Begründungen, Maßnahmen und Unterschriftenfelder zum Ausdrucken.
             </li>
             <li>
-              <strong>Dateien (.sba):</strong> ein komprimiertes Format für alles – vollständige Sicherung, geteilte Einstellungen
-              oder einzelne Analysen. Beim Einlesen wählen Sie, was übernommen wird. Ältere Dateien werden automatisch
+              <strong>Speichern und Öffnen (.sba):</strong> das Dateiformat der App – für eine Analyse („Als Datei speichern“),
+              alle Analysen samt Einstellungen oder nur die Einstellungen zum Weitergeben. „Datei öffnen“ liest sie wieder ein;
+              installiert als App öffnen sich .sba-Dateien auch per Doppelklick. Beim Öffnen wählen Sie, was übernommen wird; ältere Dateien werden automatisch
               umgewandelt.
             </li>
           </ul>
           <p>
             Alle Daten liegen ausschließlich in diesem Browser (IndexedDB). Es werden keine Inhalte an Server übertragen. Die
             App funktioniert nach dem ersten Laden vollständig offline und lässt sich als App installieren. Löschen Sie die
-            Browserdaten, sind die Analysen weg – sichern Sie regelmäßig. Die App erinnert nach 30 Tagen daran.
+            Browserdaten, sind die Analysen weg – speichern Sie regelmäßig alles als Datei. Die App erinnert nach 30 Tagen daran.
           </p>
         </Section>
       </article>

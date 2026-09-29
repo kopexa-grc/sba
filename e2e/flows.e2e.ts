@@ -81,7 +81,11 @@ test.describe("core flows", () => {
     const ods = await downloadBytes(await exportVia(page, /\.ods\)/));
     expect(ods.subarray(0, 2).toString()).toBe("PK");
     expect(ods.toString("latin1", 30, 90)).toContain("application/vnd.oasis.opendocument.spreadsheet");
-    const sbaDownload = await exportVia(page, /Analyse als Datei/);
+    // The app's own file format is saved via its own button, not the export menu.
+    const [sbaDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      page.getByRole("button", { name: "Als Datei speichern" }).click(),
+    ]);
     expect(sbaDownload.suggestedFilename()).toMatch(/\.sba$/);
     const sba = await downloadBytes(sbaDownload);
     expect([sba[0], sba[1]]).toEqual([0x1f, 0x8b]);
@@ -92,7 +96,8 @@ test.describe("core flows", () => {
     await page.getByRole("spinbutton", { name: /Finanzieller Schaden „Hoch“ ab/ }).fill("250000");
     await page.getByRole("spinbutton", { name: /Finanzieller Schaden „Sehr hoch“ ab/ }).fill("2500000");
     await page.getByRole("button", { name: "Speichern", exact: true }).click();
-    await expect(page.getByText(/Gespeichert/)).toBeVisible();
+    // Wait for the confirmation toast, not just any text containing "Gespeichert".
+    await expect(page.getByRole("status").getByText(/^Gespeichert\./)).toBeVisible();
 
     const base = await createAnalysis(page, "Schema-Test");
     await gotoStep(page, base, "A");
@@ -106,7 +111,7 @@ test.describe("core flows", () => {
     await createAnalysis(page, "Sicherungstest");
     await page.goto("/einstellungen");
     const backupPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Sicherung speichern" }).click();
+    await page.getByRole("button", { name: "Alles speichern" }).click();
     const backup = await backupPromise;
     expect(backup.suggestedFilename()).toMatch(/\.sba$/);
     const backupPath = test.info().outputPath("backup.sba");
@@ -122,10 +127,10 @@ test.describe("core flows", () => {
 
     await page.goto("/einstellungen");
     const chooser = page.waitForEvent("filechooser");
-    await page.getByRole("button", { name: "Datei wählen" }).click();
+    await page.getByRole("button", { name: "Datei öffnen" }).click();
     await (await chooser).setFiles(backupPath);
     const dialog = openDialog(page);
-    await expect(dialog).toContainText("Vollständige Sicherung");
+    await expect(dialog).toContainText("Einstellungen und Analysen");
     await dialog.getByRole("button", { name: "Übernehmen" }).click();
     await expect(page.getByText(/1 Analysen, 1 Versionen übernommen/)).toBeVisible();
     await page.goto("/");

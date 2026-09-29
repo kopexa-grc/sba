@@ -236,6 +236,22 @@ test.describe("reflow and zoom", () => {
     }
   });
 
+  test("export menu stays fully visible on phones", async ({ page }) => {
+    const base = await createAnalysis(page, "Menü mobil");
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto(`${base}/stammdaten`);
+      await page.getByRole("button", { name: "Export" }).click();
+      const items = page.getByRole("menuitem");
+      await expect(items.first()).toBeVisible();
+      for (const box of await items.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()))) {
+        expect(box.left, `menu item cut off on the left at ${width}px`).toBeGreaterThanOrEqual(0);
+        expect(box.right, `menu item cut off on the right at ${width}px`).toBeLessThanOrEqual(width);
+      }
+      await page.keyboard.press("Escape");
+    }
+  });
+
   test("usable at 200 % zoom (WCAG 1.4.4)", async ({ page }) => {
     const base = await createAnalysis(page, "Zoom");
     // 200 % zoom of a 1280 px window equals a 640 px CSS viewport.

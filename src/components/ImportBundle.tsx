@@ -8,7 +8,7 @@ import { Button, Dialog, Notice } from "./ui";
 const KIND_LABEL = {
   settings: "Einstellungen",
   assessments: "Analysen",
-  backup: "Vollständige Sicherung",
+  backup: "Einstellungen und Analysen",
 } as const;
 
 /** Preview and selective import of any .sba file (settings, analyses or both). */
@@ -49,7 +49,7 @@ export function ImportBundleDialog({ bundle, onClose }: { bundle: ParsedBundle |
     <Dialog
       open={!!bundle}
       onClose={onClose}
-      title={bundle ? `${KIND_LABEL[bundle.kind]} einlesen` : "Datei einlesen"}
+      title={bundle ? `Datei öffnen: ${KIND_LABEL[bundle.kind]}` : "Datei öffnen"}
       description="Wählen Sie, was übernommen werden soll. Vorhandene Analysen werden nicht überschrieben."
       footer={
         <>

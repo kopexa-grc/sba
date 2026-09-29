@@ -76,7 +76,7 @@ export function Dashboard() {
             Bogen importieren
           </Button>
           <Button onClick={openBundle}>
-            Datei einlesen
+            Datei öffnen
           </Button>
           <Button data-tour="new-analysis" variant="primary" onClick={() => setCreating(true)}>
             Neue Analyse
@@ -86,10 +86,10 @@ export function Dashboard() {
 
       {backupDue && (
         <Notice tone="warning" className="mt-6">
-          {lastBackup ? `Letzte Sicherung am ${formatDate(lastBackup)}.` : "Noch keine Sicherung."} Ihre Analysen liegen nur in
-          diesem Browser.{" "}
+          {lastBackup ? `Zuletzt als Datei gespeichert am ${formatDate(lastBackup)}.` : "Noch nicht als Datei gespeichert."} Ihre
+          Analysen liegen nur in diesem Browser.{" "}
           <button type="button" className="text-primary-700 underline underline-offset-2" onClick={() => guard(() => exportBackup(actor))}>
-            Jetzt sichern
+            Jetzt als Datei speichern
           </button>
         </Notice>
       )}
@@ -151,7 +151,7 @@ export function Dashboard() {
               className="ml-auto"
               onClick={() => guard(() => exportBackup(actor))}
             >
-              Alle sichern
+              Alle Analysen speichern
             </Button>
           </div>
           <AssetTable rows={filtered} />

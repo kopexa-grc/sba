@@ -224,12 +224,12 @@ export const OVERVIEW_TOUR: TourStep[] = [
   {
     target: "import",
     title: "Vorhandene Bögen übernehmen",
-    body: "Ausgefüllte Erhebungsbögen im Excel- oder OpenDocument-Format lassen sich einlesen und als Entwurf weiterbearbeiten.",
+    body: "Ausgefüllte Erhebungsbögen im Excel- oder OpenDocument-Format lassen sich importieren und als Entwurf weiterbearbeiten.",
   },
   {
     target: "settings",
-    title: "Einstellungen und Sicherung",
-    body: "Hier legen Sie Schwellenwerte, Organisation und Logo fest und sichern alle Analysen in einer Datei.",
+    title: "Einstellungen, Speichern und Öffnen",
+    body: "Hier legen Sie Schwellenwerte, Organisation und Logo fest. Alle Analysen lassen sich als .sba-Datei speichern und später wieder öffnen.",
   },
 ];
 
@@ -252,6 +252,6 @@ export const WORKSPACE_TOUR: TourStep[] = [
   {
     target: "export",
     title: "Bericht exportieren",
-    body: "PDF für die Geschäftsleitung, Tabelle für Excel oder LibreOffice und die Analyse als Datei zum Sichern oder Weitergeben.",
+    body: "PDF für die Geschäftsleitung oder eine Tabelle für Excel und LibreOffice. Mit „Als Datei speichern“ sichern Sie die Analyse im Dateiformat der App.",
   },
 ];

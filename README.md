@@ -15,9 +15,9 @@ Nachfolger des Excel-Bogens `FS_Schutzbedarfsanalyse_neu.xlsx`.
 - Import des Legacy-Bogens als XLSX oder ODS (inkl. Zeilenzuordnung und Auflösung von „Eingabe prüfen!“-Widersprüchen)
 - Prüfbericht als XLSX oder ODS (OpenDocument für LibreOffice/Collabora/openDesk; Deckblatt, Anwendung mit Originalformeln, Änderungsprotokoll, Definitionen), PDF-Bericht mit
   Unterschriftenfeldern zum Ausdrucken
-- Ein Dateiformat (`.sba` = gzip-komprimiertes JSON, schema-versioniert) für Sicherung, geteilte Einstellungen und
-  einzelne Analysen; Versionen sind vollständige Stände, die Kompression beseitigt die Redundanz (~85 % kleiner);
-  ältere Dateien werden beim Einlesen migriert
+- Eigenes Dateiformat (`.sba` = gzip-komprimiertes JSON, schema-versioniert) zum Speichern und Öffnen – einzelne Analysen, alle Analysen mit Einstellungen oder nur Einstellungen; als installierte App per Doppelklick öffnen;
+  Versionen sind vollständige Stände, die Kompression beseitigt die Redundanz (~85 % kleiner);
+  ältere Dateien werden beim Öffnen migriert
 - Offline-first: alle Daten in IndexedDB, keine Serverkommunikation, installierbar
 
 ## Entwicklung
@@ -36,7 +36,7 @@ pnpm build      # dist/ inkl. Service Worker und 404.html (SPA-Fallback für Git
 | --- | --- |
 | `src/domain` | Fragenkatalog (1:1 aus dem Excel, mit Zellkoordinaten), Scoring, Versionierung/Hash, Diff, Definitionen, Maßnahmen |
 | `src/db` | Dexie-Datenbank und Repository (auditierte Änderungen, Workflow-Übergänge, Import/Export) |
-| `src/io` | JSON-Sicherung, `xlsx/` (ExcelJS Import/Export), `pdf/` (react-pdf Report) – XLSX/PDF werden lazy geladen |
+| `src/io` | Dateiformat `.sba` (`json.ts`), `xlsx/` (ExcelJS Import/Export), `pdf/` (react-pdf Report) – XLSX/PDF werden lazy geladen |
 | `src/workspace` | Wizard-Schritte, Ergebnis, Historie, Vergleich, Workflow-Aktionen |
 | `src/pages` | Übersicht, Analyse, Handbuch, Einstellungen, Styleguide |
 | `docs/STYLEGUIDE.md` | Design-Tokens und Komponentenregeln (Kopexa-CI) |

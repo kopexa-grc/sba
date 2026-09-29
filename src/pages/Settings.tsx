@@ -149,7 +149,7 @@ export function SettingsPage() {
     <div className="mx-auto grid max-w-[1000px] gap-8 px-4 py-8 pb-28 sm:px-6">
       <div>
         <h1 className="text-[24px] font-semibold">Einstellungen</h1>
-        <p className="mt-1 text-[14px] text-muted">Gelten für diesen Browser. Als Datei lassen sie sich sichern und mit Kolleg:innen teilen.</p>
+        <p className="mt-1 text-[14px] text-muted">Gelten für diesen Browser. Als Datei lassen sie sich speichern und an Kolleg:innen weitergeben.</p>
       </div>
 
       <Block title="Organisation" description="Erscheint im Kopf von PDF-Bericht und Excel-Prüfbericht.">
@@ -314,37 +314,38 @@ export function SettingsPage() {
       </Block>
 
       <Block
-        title="Sichern und teilen"
+        title="Speichern und öffnen"
         description={
           <>
-            Eine Dateiart für alles (.sba, komprimiert, Format {SCHEMA_VERSION}). Ältere .sba.json-Dateien lassen sich weiter einlesen. Beim Einlesen wählen Sie, was übernommen wird.
+            Das Dateiformat der App (.sba, Format {SCHEMA_VERSION}) – für einzelne Analysen, alle Analysen oder die Einstellungen.
+            Beim Öffnen wählen Sie, was übernommen wird. Ältere .sba.json-Dateien lassen sich ebenfalls öffnen.
           </>
         }
       >
         <div className="grid gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="text-[14px]">
-              Vollständige Sicherung
+              Alles speichern
               <div className="text-[13px] text-muted">
-                Einstellungen und alle Analysen.
-                {storage?.lastBackup ? ` Zuletzt am ${formatDate(storage.lastBackup)}.` : " Noch keine Sicherung."}
+                Einstellungen und alle Analysen in einer Datei.
+                {storage?.lastBackup ? ` Zuletzt am ${formatDate(storage.lastBackup)}.` : " Noch nicht gespeichert."}
               </div>
             </div>
-            <Button onClick={() => guard(() => exportBackup(actor))}>Sicherung speichern</Button>
+            <Button onClick={() => guard(() => exportBackup(actor))}>Alles speichern</Button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
             <div className="text-[14px]">
-              Einstellungen teilen
+              Einstellungen weitergeben
               <div className="text-[13px] text-muted">Organisation, Bewertungsschema und Maßnahmen – ohne Analysen.</div>
             </div>
-            <Button onClick={() => guard(() => exportSettings(actor))}>Einstellungen exportieren</Button>
+            <Button onClick={() => guard(() => exportSettings(actor))}>Einstellungen als Datei speichern</Button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
             <div className="text-[14px]">
-              Datei einlesen
-              <div className="text-[13px] text-muted">Sicherung, geteilte Einstellungen oder einzelne Analysen.</div>
+              Datei öffnen
+              <div className="text-[13px] text-muted">Gespeicherte Analysen oder weitergegebene Einstellungen (.sba).</div>
             </div>
-            <Button onClick={openFile}>Datei wählen</Button>
+            <Button onClick={openFile}>Datei öffnen</Button>
           </div>
         </div>
       </Block>
@@ -362,7 +363,7 @@ export function SettingsPage() {
             <Button
               onClick={async () => {
                 const ok = await navigator.storage?.persist?.();
-                notify(ok ? "Speicher ist jetzt dauerhaft." : "Der Browser lehnt dauerhaften Speicher ab. Installieren Sie die App oder sichern Sie regelmäßig.");
+                notify(ok ? "Speicher ist jetzt dauerhaft." : "Der Browser lehnt dauerhaften Speicher ab. Installieren Sie die App oder speichern Sie regelmäßig.");
               }}
             >
               Dauerhaft speichern
@@ -410,7 +411,7 @@ export function SettingsPage() {
         open={wipe}
         onClose={() => setWipe(false)}
         title="Alles löschen?"
-        description="Sämtliche Analysen, Versionen, Änderungsprotokolle und Einstellungen werden unwiderruflich entfernt. Erstellen Sie vorher eine Sicherung."
+        description="Sämtliche Analysen, Versionen, Änderungsprotokolle und Einstellungen werden unwiderruflich entfernt. Speichern Sie vorher alles als Datei."
         footer={
           <>
             <Button onClick={() => setWipe(false)}>Abbrechen</Button>

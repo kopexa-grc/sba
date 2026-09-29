@@ -25,6 +25,9 @@ export default defineConfig({
         display: "standalone",
         background_color: "#f6f7f9",
         theme_color: "#10263e",
+        // Installed app opens .sba files (Chromium File Handling API).
+        file_handlers: [{ action: base, accept: { "application/vnd.kopexa.sba": [".sba"] } }],
+        launch_handler: { client_mode: "focus-existing" },
         icons: [
           { src: "pwa-192.png", sizes: "192x192", type: "image/png" },
           { src: "pwa-512.png", sizes: "512x512", type: "image/png" },

@@ -98,7 +98,7 @@ export async function exportSettings(exportedBy: string) {
 /** Settings plus every analysis with all versions and the change log. */
 export async function exportBackup(exportedBy: string) {
   const [settings, assets] = await Promise.all([repo.getSettings(), repo.exportRecords()]);
-  await saveJson(`SBA_Sicherung_${today()}`, buildBundle({ settings, assets }, exportedBy));
+  await saveJson(`SBA_Alle_Analysen_${today()}`, buildBundle({ settings, assets }, exportedBy));
   await repo.markBackup();
 }
 

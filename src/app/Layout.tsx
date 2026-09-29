@@ -3,7 +3,13 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { Button, cn } from "../components/ui";
+import { ImportBundleDialog } from "../components/ImportBundle";
+import { BundleError, readBundleFile, type ParsedBundle } from "../io/json";
 import { useRouteFocus } from "../lib/a11y";
+
+interface LaunchQueue {
+  setConsumer(consumer: (params: { files?: { getFile(): Promise<File> }[] }) => void): void;
+}
 import { useSession } from "./session";
 
 function useOnline() {
@@ -33,7 +39,7 @@ export function Logo({ className }: { className?: string }) {
 }
 
 export function Layout() {
-  const { identity, editIdentity } = useSession();
+  const { identity, editIdentity, notify } = useSession();
   const online = useOnline();
   const {
     needRefresh: [needRefresh],
@@ -41,6 +47,21 @@ export function Layout() {
   } = useRegisterSW();
 
   useRouteFocus();
+  const [opened, setOpened] = useState<ParsedBundle | null>(null);
+
+  // .sba files opened from the operating system (installed app, Chromium).
+  useEffect(() => {
+    const queue = (window as unknown as { launchQueue?: LaunchQueue }).launchQueue;
+    queue?.setConsumer(async (params) => {
+      const handle = params.files?.[0];
+      if (!handle) return;
+      try {
+        setOpened(await readBundleFile(await (await handle.getFile()).arrayBuffer()));
+      } catch (e) {
+        notify(e instanceof BundleError ? e.message : "Die Datei konnte nicht geöffnet werden.", "error");
+      }
+    });
+  }, [notify]);
 
   const nav = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -96,6 +117,8 @@ export function Layout() {
           </Button>
         </div>
       )}
+
+      <ImportBundleDialog bundle={opened} onClose={() => setOpened(null)} />
 
       <main id="inhalt" tabIndex={-1} className="flex-1 focus:outline-none">
         <Outlet />

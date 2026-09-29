@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Ellipsis } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { exportAssessment, exportOds, exportPdf, exportXlsx } from "../app/files";
@@ -61,13 +61,24 @@ export function WorkflowActions({
         </Button>
       )}
 
+      <Button onClick={() => guard(() => exportAssessment(version, actor))} title="Speichert die Analyse mit allen Versionen als .sba-Datei">
+        Als Datei speichern
+      </Button>
+
       <Menu
         label="Export"
+        tour="export"
         items={[
           { label: "PDF-Bericht", onSelect: () => withName(() => exportPdf(version)) },
           { label: "Prüfbericht für Excel (.xlsx)", onSelect: () => withName(() => exportXlsx(version)) },
           { label: "Prüfbericht für LibreOffice / openDesk (.ods)", onSelect: () => withName(() => exportOds(version)) },
-          { label: "Analyse als Datei (.sba)", onSelect: () => guard(() => exportAssessment(version, actor)) },
+        ]}
+      />
+
+      <Menu
+        label="Weitere Aktionen"
+        iconOnly={<Ellipsis className="size-4" aria-hidden />}
+        items={[
           ...(version.status === "draft" && version.parentVersionId
             ? [{ label: "Version verwerfen …", onSelect: () => setPending("discard"), danger: true }]
             : []),
@@ -206,16 +217,55 @@ interface MenuItem {
 }
 
 /** Menu button following the WAI-ARIA menu pattern (arrow keys, Home/End, Escape, Tab). */
-function Menu({ label, items }: { label: string; items: MenuItem[] }) {
+function Menu({
+  label,
+  items,
+  iconOnly,
+  tour,
+}: {
+  label: string;
+  items: MenuItem[];
+  /** Renders an icon-only trigger; `label` becomes its accessible name. */
+  iconOnly?: React.ReactNode;
+  tour?: string;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const menuId = useId();
 
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  /** Menu below the button, always fully inside the viewport (phones included). */
+  const measure = () => {
+    const r = button.current?.getBoundingClientRect();
+    if (!r) return null;
+    const gutter = 16;
+    const width = Math.min(288, window.innerWidth - 2 * gutter);
+    const left = Math.min(Math.max(gutter, r.right - width), window.innerWidth - width - gutter);
+    return { top: r.bottom + 4, left, width };
+  };
+
+  function openMenu() {
+    setPos(measure());
+    setOpen(true);
+  }
+
   useEffect(() => {
     if (!open) return;
     itemRefs.current[0]?.focus();
+    const place = () => setPos(measure());
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const onDown = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -225,6 +275,7 @@ function Menu({ label, items }: { label: string; items: MenuItem[] }) {
 
   function close(returnFocus: boolean) {
     setOpen(false);
+    setPos(null);
     if (returnFocus) button.current?.focus();
   }
 
@@ -242,22 +293,29 @@ function Menu({ label, items }: { label: string; items: MenuItem[] }) {
   }
 
   return (
-    <div ref={ref} className="relative" data-tour="export">
+    <div ref={ref} className="relative" data-tour={tour}>
       <Button
         ref={button}
         aria-haspopup="menu"
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
+        className={iconOnly ? "w-8 px-0" : undefined}
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close(false) : openMenu())}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown" || e.key === "ArrowUp") {
             e.preventDefault();
-            setOpen(true);
+            openMenu();
           }
         }}
       >
-        {label}
-        <ChevronDown className="size-3.5" aria-hidden />
+        {iconOnly ?? (
+          <>
+            {label}
+            <ChevronDown className="size-3.5" aria-hidden />
+          </>
+        )}
       </Button>
       {open && (
         <div
@@ -265,7 +323,8 @@ function Menu({ label, items }: { label: string; items: MenuItem[] }) {
           role="menu"
           aria-label={label}
           onKeyDown={onMenuKey}
-          className="absolute right-0 z-40 mt-1 w-72 rounded-md border border-line bg-paper py-1 shadow-[0_8px_24px_-8px_rgb(16_38_62/0.22)]"
+          className="fixed z-40 max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-md border border-line bg-paper py-1 shadow-[0_8px_24px_-8px_rgb(16_38_62/0.22)]"
+          style={pos ?? undefined}
         >
           {items.map((it, i) => (
             <button
@@ -283,7 +342,7 @@ function Menu({ label, items }: { label: string; items: MenuItem[] }) {
               className={cn(
                 "flex w-full px-3 py-1.5 text-left text-[13.5px] hover:bg-surface focus-visible:bg-surface focus-visible:outline-offset-[-2px]",
                 it.danger && "text-red-700",
-                it.danger && !items[i - 1]?.danger && "mt-1 border-t border-line pt-2",
+                it.danger && i > 0 && !items[i - 1]?.danger && "mt-1 border-t border-line pt-2",
               )}
             >
               {it.label}
