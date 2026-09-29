@@ -5,6 +5,7 @@ Font.registerHyphenationCallback((word) => [word]);
 import type { ReactNode } from "react";
 import { CATALOG, SCENARIO_SHORT, type GoalDef } from "../../domain/catalog";
 import { META_LABEL } from "../../domain/diff";
+import { nextSteps } from "../../domain/next-steps";
 import { catalogFor, DEFAULT_MEASURES, describeScheme, type MeasureCatalog, type Settings } from "../../domain/scheme";
 import { goalResult, scenarioLevel, validate, type Rated } from "../../domain/scoring";
 import {
@@ -37,6 +38,8 @@ interface ReportContext {
   orgName: string;
   /** PNG/JPEG data URL; other formats are not supported by the PDF renderer. */
   logo: string | null;
+  /** Consultancy that prepared the report, if set in the settings. */
+  preparedBy: { name: string; logo: string | null } | null;
   generatedAt: Date;
 }
 
@@ -281,7 +284,12 @@ function Frame({ ctx, children }: { ctx: ReportContext; children: ReactNode }) {
       )}
       {children}
       <View style={s.footer} fixed>
-        <Text>schutzbedarf.kopexa.com</Text>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {ctx.preparedBy?.logo && <Image src={ctx.preparedBy.logo} style={{ height: 9, marginRight: 5 }} />}
+          <Text>
+            {ctx.preparedBy ? `Erstellt durch ${ctx.preparedBy.name} · ` : ""}schutzbedarf.kopexa.com
+          </Text>
+        </View>
         <Text
           render={({ pageNumber, totalPages }) =>
             `Seite ${pageNumber} von ${totalPages} · erstellt am ${fmtDate(ctx.generatedAt.toISOString())}`
@@ -488,6 +496,21 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
   const high = GOALS.map((g) => goalResult(version, g)).filter((r) => r.effective !== null && r.effective >= 2);
   return (
     <>
+      <View>
+        <Text style={s.h2} minPresenceAhead={60}>
+          Nächste Schritte
+        </Text>
+        {nextSteps(version).map((step, i) => (
+          <View key={step.id} style={{ flexDirection: "row", marginBottom: 2 }} wrap={false}>
+            <Text style={{ width: 12, color: MUTED }}>{i + 1}.</Text>
+            <Text style={{ flex: 1 }}>
+              {step.title}
+              {step.link ? <Text style={{ color: MUTED }}>{` – ${step.link.href.replace("https://", "")}`}</Text> : null}
+            </Text>
+          </View>
+        ))}
+      </View>
+
       {high.length > 0 && (
         <View>
           <Text style={s.h2} minPresenceAhead={60}>
@@ -554,19 +577,12 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
         </View>
       )}
 
-      <View>
-        <Text style={s.h2} minPresenceAhead={50}>
-          Methode
+      <View wrap={false} style={{ marginTop: 6, borderTopWidth: HAIRLINE, borderTopColor: LINE, paddingTop: 4 }}>
+        <Text style={s.small}>
+          Methode nach BSI-Standard 200-2 (Maximumprinzip; Sondereffekte als begründete Übersteuerung). Schema:{" "}
+          {describeScheme(version.scheme)} Versions-ID <Text style={s.mono}>{version.id}</Text>.
         </Text>
-        <Text style={s.muted}>
-          Schutzbedarf je Grundwert anhand standardisierter Schadensszenarien nach BSI-Standard 200-2 bzw. ISO/IEC 27001,
-          Maximumprinzip über alle Szenarien. Kumulations-, Verteilungs- und Vererbungseffekte sind als begründete
-          Übersteuerung dokumentiert. Bewertungsschema: {describeScheme(version.scheme)}
-        </Text>
-        <Text style={[s.small, { marginTop: 4 }]}>
-          Versions-ID <Text style={s.mono}>{version.id}</Text>
-        </Text>
-        <Text style={[s.small, { marginTop: 6 }]}>
+        <Text style={[s.small, { marginTop: 2 }]}>
           Erstellt mit der Kopexa Schutzbedarfsanalyse (schutzbedarf.kopexa.com), einem kostenlosen Hilfsmittel ohne Gewähr. Kein
           Ersatz für Rechts-, Datenschutz- oder Auditberatung; Einstufung und Begründung verantwortet die anwendende Organisation.
         </Text>
@@ -597,6 +613,12 @@ export function ReportDocument({
     measures: settings?.measures ?? DEFAULT_MEASURES,
     orgName: settings?.organization.name.trim() || "Kopexa",
     logo: isRasterDataUrl(settings?.organization.logo) ? settings!.organization.logo : null,
+    preparedBy: settings?.preparedBy?.name.trim()
+      ? {
+          name: settings.preparedBy.name.trim(),
+          logo: isRasterDataUrl(settings.preparedBy.logo) ? settings.preparedBy.logo : null,
+        }
+      : null,
     generatedAt,
   };
   return (
@@ -616,7 +638,13 @@ export function ReportDocument({
 
 function documentFor(version: AssessmentVersion, history: AssessmentVersion[], opts: ReportOptions = {}) {
   const settings = opts.settings
-    ? { ...sanitize(opts.settings), organization: { ...sanitize(opts.settings.organization), logo: opts.settings.organization.logo } }
+    ? {
+        ...sanitize(opts.settings),
+        organization: { ...sanitize(opts.settings.organization), logo: opts.settings.organization.logo },
+        preparedBy: opts.settings.preparedBy
+          ? { ...sanitize(opts.settings.preparedBy), logo: opts.settings.preparedBy.logo }
+          : { name: "", logo: null },
+      }
     : undefined;
   return (
     <ReportDocument

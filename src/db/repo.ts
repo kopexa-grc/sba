@@ -75,6 +75,7 @@ export class Repo {
     const defaults = defaultSettings();
     return {
       organization: { ...defaults.organization, ...stored?.organization },
+      preparedBy: { ...defaults.preparedBy, ...stored?.preparedBy },
       scheme: { ...defaults.scheme, ...stored?.scheme },
       measures: stored?.measures ?? defaults.measures,
     };

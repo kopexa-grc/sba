@@ -16,6 +16,7 @@ const SECTIONS = [
   { id: "versionen", title: "Versionen & Änderungsprotokoll" },
   { id: "schema", title: "Bewertungsschema" },
   { id: "daten", title: "Import, Export & Datenschutz" },
+  { id: "berater", title: "Für Beraterinnen und Berater" },
   { id: "haftung", title: "Haftung & Grenzen" },
 ];
 
@@ -232,6 +233,39 @@ export function Help() {
             Alle Daten liegen ausschließlich in diesem Browser (IndexedDB). Es werden keine Inhalte an Server übertragen. Die
             App funktioniert nach dem ersten Laden vollständig offline und lässt sich als App installieren. Löschen Sie die
             Browserdaten, sind die Analysen weg – speichern Sie regelmäßig alles als Datei. Die App erinnert nach 30 Tagen daran.
+          </p>
+        </Section>
+
+        <Section id="berater" title="Für Beraterinnen und Berater">
+          <p>
+            Sie können die Schutzbedarfsanalyse kostenlos bei Ihren Mandanten einsetzen – auch im Rahmen bezahlter Beratung.
+            Die Apache License 2.0 erlaubt die gewerbliche Nutzung ausdrücklich.
+          </p>
+          <ul className="grid gap-1.5 pl-5 [list-style:disc]">
+            <li>
+              <strong>Eigener Auftritt:</strong> Unter Einstellungen tragen Sie die Organisation des Mandanten mit Logo ein und bei
+              „Erstellt durch“ Ihr Beratungsunternehmen. Beides erscheint in PDF- und Tabellenberichten.
+            </li>
+            <li>
+              <strong>Mehrere Mandanten:</strong> Speichern Sie je Mandant die Einstellungen (Menü Datei → Einstellungen als
+              Datei speichern) und die Analysen (Alle Analysen speichern). Beim Wechsel öffnen Sie die Dateien des Mandanten.
+              Alternativ nutzen Sie je Mandant ein eigenes Browserprofil.
+            </li>
+            <li>
+              <strong>Schneller Start:</strong> Die Asset-Liste des Mandanten übernehmen Sie über „Assets erfassen“ aus CSV oder
+              Excel; ausgefüllte Erhebungsbögen importieren Sie direkt.
+            </li>
+            <li>
+              <strong>Übergabe:</strong> Der Mandant erhält die .sba-Datei und kann die Analysen selbst weiterführen – ohne Konto
+              und ohne Installation.
+            </li>
+          </ul>
+          <p>
+            Sie beraten regelmäßig zu ISMS, ISO 27001, NIS2 oder IT-Grundschutz? Im{" "}
+            <a className="underline underline-offset-2" href="https://kopexa.com/de/partners">
+              Partnerprogramm von Kopexa
+            </a>{" "}
+            finden Sie weitere Möglichkeiten der Zusammenarbeit.
           </p>
         </Section>
 

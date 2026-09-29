@@ -9,7 +9,7 @@ import type { AssessmentVersion, Asset, AuditAction, AuditEntry } from "../domai
  * - kind "backup":      settings plus all analyses
  * Files of schema 1.x (before the approval workflow was removed) are migrated on import.
  */
-export const SCHEMA_VERSION = "2.0.0";
+export const SCHEMA_VERSION = "2.1.0";
 export const FILE_SUFFIX = ".sba";
 /** File picker filter: compressed files and plain JSON from older exports. */
 export const FILE_ACCEPT = ".sba,.json,application/json";
@@ -54,6 +54,8 @@ const measuresSchema = z.object({
 
 const settingsSchema = z.object({
   organization: z.object({ name: z.string(), logo: z.string().nullable() }),
+  // 2.1: optional "prepared by" (consultancy); older files get an empty one.
+  preparedBy: z.object({ name: z.string(), logo: z.string().nullable() }).default({ name: "", logo: null }),
   scheme: z.object({ ...schemeFields, updatedAt: z.string() }),
   measures: measuresSchema,
 });

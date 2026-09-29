@@ -30,10 +30,18 @@ export interface OrganizationSettings {
   logo: string | null;
 }
 
+/** Who prepared the report, e.g. a consultancy working for the organization (optional). */
+export interface PreparedBy {
+  name: string;
+  /** Logo as PNG data URL. */
+  logo: string | null;
+}
+
 export type MeasureCatalog = Record<Goal, Record<2 | 3, string[]>>;
 
 export interface Settings {
   organization: OrganizationSettings;
+  preparedBy: PreparedBy;
   scheme: RatingScheme;
   measures: MeasureCatalog;
 }
@@ -92,6 +100,7 @@ export const DEFAULT_MEASURES: MeasureCatalog = {
 export function defaultSettings(): Settings {
   return {
     organization: { name: "", logo: null },
+    preparedBy: { name: "", logo: null },
     scheme: { ...DEFAULT_SCHEME },
     measures: structuredClone(DEFAULT_MEASURES),
   };

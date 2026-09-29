@@ -209,6 +209,7 @@ function buildCover(v: AssessmentVersion, history: AssessmentVersion[], catalog:
     [EXTRA_LABEL.closed, closed],
     [EXTRA_LABEL.scheme, describeScheme(v.scheme)],
     [EXTRA_LABEL.organization, settings?.organization.name ?? ""],
+    [EXTRA_LABEL.preparedBy, settings?.preparedBy?.name ?? ""],
   ];
   for (const [text, val] of entries) {
     row++;

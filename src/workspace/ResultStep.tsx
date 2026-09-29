@@ -1,9 +1,11 @@
-import { AlertTriangle, CircleAlert } from "lucide-react";
+import { AlertTriangle, CircleAlert, ExternalLink } from "lucide-react";
 import { Link } from "react-router";
 import { LevelMark } from "../components/level";
 import { Field, Select, cn } from "../components/ui";
 import { SCENARIO_SHORT } from "../domain/catalog";
 import { useSettings } from "../app/data";
+import { useFileActions } from "../app/file-actions";
+import { nextSteps } from "../domain/next-steps";
 import { DEFAULT_MEASURES } from "../domain/scheme";
 import { goalResult, validate, type Issue } from "../domain/scoring";
 import { GOALS, GOAL_EN, GOAL_LABEL, LEVEL_LABEL, OVERRIDE_KIND_LABEL, type Goal, type OverrideKind } from "../domain/types";
@@ -23,6 +25,7 @@ export function ResultStep({ basePath }: { basePath: string }) {
       {GOALS.map((g) => (
         <GoalPanel key={g} goal={g} basePath={basePath} />
       ))}
+      <NextSteps />
       <div className="border-t border-line pt-8">
         <h2 className="mb-3 text-[17px] font-semibold">Offene Punkte</h2>
         <IssueList issues={issues} basePath={basePath} />
@@ -196,6 +199,55 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
           </ul>
         </div>
       )}
+    </section>
+  );
+}
+
+/** Follow-up steps in the ISMS; knowledge links open kopexa.com in a new tab. */
+function NextSteps() {
+  const { version } = useEditor();
+  const files = useFileActions();
+  const steps = nextSteps(version);
+  return (
+    <section className="border-t border-line pt-8" aria-labelledby="next-steps">
+      <h2 id="next-steps" className="text-[17px] font-semibold">
+        Wie geht es weiter?
+      </h2>
+      <p className="mt-0.5 text-[13.5px] text-muted">Die Schutzbedarfsanalyse ist der Anfang. Diese Schritte folgen im ISMS.</p>
+      <ol className="mt-4 grid gap-4">
+        {steps.map((s, i) => (
+          <li key={s.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-2">
+            <span className="text-[13.5px] text-muted tabular" aria-hidden>
+              {i + 1}.
+            </span>
+            <div>
+              <h3 className="text-[14px] font-medium">{s.title}</h3>
+              <p className="mt-0.5 text-[13.5px] text-muted">{s.body}</p>
+              {(s.link || s.action) && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+                  {s.action === "capture-assets" && (
+                    <button type="button" onClick={files.captureAssets} className="text-primary-700 underline underline-offset-2">
+                      Abhängige Assets erfassen
+                    </button>
+                  )}
+                  {s.link && (
+                    <a
+                      href={s.link.href}
+                      target="_blank"
+                      rel="noopener"
+                      className="inline-flex items-center gap-1 text-primary-700 underline underline-offset-2"
+                    >
+                      {s.link.label}
+                      <ExternalLink className="size-3" aria-hidden />
+                      <span className="sr-only">(öffnet kopexa.com in neuem Tab)</span>
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

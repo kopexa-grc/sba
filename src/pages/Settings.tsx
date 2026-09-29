@@ -126,6 +126,7 @@ export function SettingsPage() {
     const clean = structuredClone(draft!);
     for (const g of GOALS) for (const l of [2, 3] as const) clean.measures[g][l] = clean.measures[g][l].map((m) => m.trim()).filter(Boolean);
     clean.organization.name = clean.organization.name.trim();
+    clean.preparedBy.name = clean.preparedBy.name.trim();
     clean.scheme.name = clean.scheme.name.trim() || DEFAULT_SCHEME.name;
     const saved = await guard(() => repo.saveSettings(clean));
     if (!saved) return;
@@ -181,6 +182,57 @@ export function SettingsPage() {
             </label>
             {draft.organization.logo && (
               <Button variant="ghost" onClick={() => set((s) => void (s.organization.logo = null))}>
+                Entfernen
+              </Button>
+            )}
+          </div>
+        </div>
+      </Block>
+
+      <Block
+        title="Erstellt durch"
+        description={
+          <>
+            Optional, etwa für Beratungen: erscheint in PDF- und Tabellenberichten neben der Organisation.{" "}
+            <Link to="/hilfe#berater" className="underline underline-offset-2">
+              Hinweise für Berater
+            </Link>
+          </>
+        }
+      >
+        <Field label="Name (z. B. Beratungsunternehmen)">
+          {(id) => (
+            <Input
+              id={id}
+              value={draft.preparedBy.name}
+              placeholder="z. B. Muster Consulting GmbH"
+              onChange={(e) => set((s) => void (s.preparedBy.name = e.target.value))}
+            />
+          )}
+        </Field>
+        <div>
+          <div className="mb-1.5 text-[13px] font-medium">Logo</div>
+          <div className="flex flex-wrap items-center gap-3">
+            {draft.preparedBy.logo && (
+              <img src={draft.preparedBy.logo} alt="Logo „Erstellt durch“" className="h-10 max-w-40 rounded border border-line object-contain p-1" />
+            )}
+            <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-line px-3 text-[13.5px] font-medium hover:bg-surface">
+              {draft.preparedBy.logo ? "Anderes Logo wählen" : "Logo wählen"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/svg+xml"
+                className="sr-only"
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  const logo = await guard(() => toLogo(f));
+                  if (logo) set((s) => void (s.preparedBy.logo = logo));
+                }}
+              />
+            </label>
+            {draft.preparedBy.logo && (
+              <Button variant="ghost" onClick={() => set((s) => void (s.preparedBy.logo = null))}>
                 Entfernen
               </Button>
             )}

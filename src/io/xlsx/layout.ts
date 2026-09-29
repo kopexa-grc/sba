@@ -51,6 +51,7 @@ export const EXTRA_LABEL = {
   closed: "Abgeschlossen",
   scheme: "Bewertungsschema",
   organization: "Organisation",
+  preparedBy: "Erstellt durch",
 } as const;
 
 /** Row (per goal) below each questionnaire block that carries a manual override. */
