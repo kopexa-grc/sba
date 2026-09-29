@@ -30,6 +30,12 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+        env:
+          # "/sba/" while served at kopexa-grc.github.io/sba, "/" with the custom domain.
+          BASE_PATH: ${{ vars.PAGES_BASE_PATH || '/' }}
+      - name: Custom domain
+        if: vars.PAGES_CNAME != ''
+        run: echo "${{ vars.PAGES_CNAME }}" > dist/CNAME
       - uses: actions/upload-pages-artifact@v4
         if: github.event_name != 'pull_request'
         with:

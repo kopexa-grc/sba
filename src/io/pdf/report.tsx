@@ -10,6 +10,7 @@ import { goalResult, scenarioLevel, validate, type Rated } from "../../domain/sc
 import {
   ASSET_TYPE_LABEL,
   GOALS,
+  GOAL_EN,
   GOAL_LABEL,
   LEVEL_LABEL,
   OVERRIDE_KIND_LABEL,
@@ -86,7 +87,6 @@ const s = StyleSheet.create({
   results: { flexDirection: "row", borderTopWidth: HAIRLINE, borderBottomWidth: HAIRLINE, borderColor: LINE },
   resultCol: { flex: 1, paddingVertical: 8, paddingRight: 12 },
   resultColInner: { borderLeftWidth: HAIRLINE, borderLeftColor: LINE, paddingLeft: 12 },
-  resultLevel: { fontFamily: "Helvetica-Bold", fontSize: 15, marginTop: 3, marginBottom: 5 },
   // Tables: no outer frame, header and row rules only.
   th: {
     flexDirection: "row",
@@ -97,6 +97,9 @@ const s = StyleSheet.create({
   },
   tr: { flexDirection: "row", borderBottomWidth: HAIRLINE, borderBottomColor: LINE, alignItems: "center" },
   cell: { paddingVertical: 3, paddingRight: 8 },
+  // Scenario matrix: fixed row height, every cell vertically centered.
+  matrixRow: { flexDirection: "row", height: 19, borderBottomWidth: HAIRLINE, borderBottomColor: LINE },
+  matrixCell: { height: 19, justifyContent: "center", paddingRight: 8 },
   kvGrid: { flexDirection: "row", flexWrap: "wrap" },
   kvItem: { width: "50%", borderBottomWidth: HAIRLINE, borderBottomColor: LINE, paddingVertical: 2.5, paddingRight: 12 },
   kvItemWide: { width: "100%" },
@@ -132,7 +135,7 @@ const s = StyleSheet.create({
     color: MUTED,
   },
   // LevelMark: three bars of increasing height, filled up to the level.
-  mark: { flexDirection: "row", alignItems: "center" },
+  mark: { flexDirection: "row", alignItems: "flex-end" },
   bars: { flexDirection: "row", alignItems: "flex-end", height: 8, marginRight: 5 },
   bar: { width: 2.6, marginRight: 1.3 },
 });
@@ -199,11 +202,27 @@ function fmtMetaValue(key: keyof AssetMeta, meta: AssetMeta): string {
 
 const BAR_HEIGHTS = [4, 6, 8];
 
-function LevelMark({ level, word = true, size = 9 }: { level: Rated | null | "na"; word?: boolean; size?: number }) {
-  if (level === "na") return <Text style={{ color: MUTED, fontSize: size }}>n. r.</Text>;
+function LevelMark({
+  level,
+  word = true,
+  size = 9,
+  bold = false,
+}: {
+  level: Rated | null | "na";
+  word?: boolean;
+  size?: number;
+  bold?: boolean;
+}) {
+  if (level === "na") {
+    return (
+      <View style={s.mark}>
+        <Text style={{ color: MUTED, fontSize: size, lineHeight: 1 }}>n. r.</Text>
+      </View>
+    );
+  }
   return (
     <View style={s.mark}>
-      <View style={s.bars}>
+      <View style={[s.bars, word ? { marginBottom: size * 0.2 } : {}]}>
         {BAR_HEIGHTS.map((h, i) => (
           <View
             key={h}
@@ -212,7 +231,9 @@ function LevelMark({ level, word = true, size = 9 }: { level: Rated | null | "na
         ))}
       </View>
       {word && (
-        <Text style={{ fontSize: size, color: level === null ? MUTED : INK }}>{level === null ? "offen" : LEVEL_LABEL[level]}</Text>
+        <Text style={{ fontSize: size, lineHeight: 1, color: level === null ? MUTED : INK, fontFamily: bold ? "Helvetica-Bold" : "Helvetica" }}>
+          {level === null ? "offen" : LEVEL_LABEL[level]}
+        </Text>
       )}
     </View>
   );
@@ -283,11 +304,12 @@ function SummaryPage({ version, generatedAt }: { version: AssessmentVersion; gen
           const r = results[g];
           return (
             <View key={g} style={[s.resultCol, i > 0 ? s.resultColInner : {}]}>
-              <Text style={s.small}>{GOAL_LABEL[g]}</Text>
-              <Text style={[s.resultLevel, { color: r.effective ? INK : MUTED }]}>
-                {r.effective ? LEVEL_LABEL[r.effective] : "offen"}
+              <Text style={s.small}>
+                {GOAL_LABEL[g]} ({GOAL_EN[g]})
               </Text>
-              <LevelMark level={r.effective} word={false} />
+              <View style={{ marginTop: 5, marginBottom: 1 }}>
+                <LevelMark level={r.effective} size={15} bold />
+              </View>
               <Text style={[s.small, { marginTop: 5 }]}>
                 {r.override
                   ? `Übersteuert, berechnet: ${r.computed ? LEVEL_LABEL[r.computed] : "offen"}`
@@ -304,19 +326,24 @@ function SummaryPage({ version, generatedAt }: { version: AssessmentVersion; gen
       <View style={s.th}>
         <Text style={[s.cell, { flex: 1 }]}>Schadensszenario</Text>
         {GOALS.map((g) => (
-          <Text key={g} style={[s.cell, { width: 88 }]}>
-            {GOAL_LABEL[g]}
-          </Text>
+          <View key={g} style={[s.cell, { width: 88 }]}>
+            <Text>{GOAL_LABEL[g]}</Text>
+            <Text style={{ fontSize: 7 }}>{GOAL_EN[g]}</Text>
+          </View>
         ))}
       </View>
       {SCENARIO_ORDER.map((id) => (
-        <View key={id} style={s.tr}>
-          <Text style={[s.cell, { flex: 1 }]}>{SCENARIO_SHORT[id]}</Text>
+        <View key={id} style={s.matrixRow} wrap={false}>
+          <View style={[s.matrixCell, { flex: 1 }]}>
+            <View style={s.mark}>
+              <Text style={{ fontSize: 9, lineHeight: 1 }}>{SCENARIO_SHORT[id]}</Text>
+            </View>
+          </View>
           {GOALS.map((g) => {
             const applicable = CATALOG[g].scenarios.some((d) => d.id === id);
             const lvl = applicable ? scenarioLevel(version.answers[g]?.[id]) : "na";
             return (
-              <View key={g} style={[s.cell, { width: 88 }]}>
+              <View key={g} style={[s.matrixCell, { width: 88 }]}>
                 <LevelMark level={lvl} />
               </View>
             );
@@ -364,7 +391,9 @@ function ReasoningPage({ version, generatedAt }: { version: AssessmentVersion; g
         return (
           <View key={r.goal}>
             <View style={s.goalHead} wrap={false}>
-              <Text style={s.goalHeadText}>{GOAL_LABEL[r.goal]}</Text>
+              <Text style={s.goalHeadText}>
+                {GOAL_LABEL[r.goal]} <Text style={{ fontFamily: "Helvetica", color: MUTED }}>({GOAL_EN[r.goal]})</Text>
+              </Text>
               <LevelMark level={r.effective} size={9.5} />
             </View>
             <Text style={s.label}>Begründung</Text>

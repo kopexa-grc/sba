@@ -5,7 +5,7 @@ import { Field, Select, cn } from "../components/ui";
 import { SCENARIO_SHORT } from "../domain/catalog";
 import { MEASURES } from "../domain/measures";
 import { goalResult, validate, type Issue } from "../domain/scoring";
-import { GOALS, GOAL_LABEL, LEVEL_LABEL, OVERRIDE_KIND_LABEL, type Goal, type OverrideKind } from "../domain/types";
+import { GOALS, GOAL_EN, GOAL_LABEL, LEVEL_LABEL, OVERRIDE_KIND_LABEL, type Goal, type OverrideKind } from "../domain/types";
 import { CommitInput, useEditor } from "./editor";
 
 export function ResultStep({ basePath }: { basePath: string }) {
@@ -40,7 +40,9 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
   return (
     <section className="grid gap-5 border-t border-line pt-8 first-of-type:border-t-0 first-of-type:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h3 className="text-[17px] font-semibold">{GOAL_LABEL[goal]}</h3>
+        <h3 className="text-[17px] font-semibold">
+          {GOAL_LABEL[goal]} <span className="font-normal text-muted">({GOAL_EN[goal]})</span>
+        </h3>
         <LevelMark level={r.effective} className="text-[14px] font-medium" />
       </div>
 

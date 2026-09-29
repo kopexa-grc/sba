@@ -11,6 +11,9 @@ export const GOAL_LABEL: Record<Goal, string> = {
 
 export const GOAL_SHORT: Record<Goal, string> = { C: "V", I: "I", A: "A" };
 
+/** English CIA terms, shown next to the German goal names. */
+export const GOAL_EN: Record<Goal, string> = { C: "Confidentiality", I: "Integrity", A: "Availability" };
+
 /**
  * Protection level. 0 = not relevant (scenario does not apply to the goal),
  * 1 = normal, 2 = high, 3 = very high.

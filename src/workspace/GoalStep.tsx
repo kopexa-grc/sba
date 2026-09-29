@@ -4,7 +4,7 @@ import { Field, Segmented, cn } from "../components/ui";
 import { CATALOG, type ScenarioDef } from "../domain/catalog";
 import { DEFINITIONS } from "../domain/definitions";
 import { goalResult, scenarioLevel } from "../domain/scoring";
-import { GOAL_LABEL, GOAL_SHORT, LEVEL_LABEL, type Goal, type ScenarioAnswer } from "../domain/types";
+import { GOAL_EN, GOAL_LABEL, GOAL_SHORT, LEVEL_LABEL, type Goal, type ScenarioAnswer } from "../domain/types";
 import { emptyAnswer } from "../domain/versioning";
 import { CommitInput, useEditor } from "./editor";
 
@@ -22,7 +22,9 @@ export function GoalStep({ goal }: { goal: Goal }) {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
-          <h2 className="text-[20px] font-semibold">{GOAL_LABEL[goal]}</h2>
+          <h2 className="text-[20px] font-semibold">
+            {GOAL_LABEL[goal]} <span className="font-normal text-muted">({GOAL_EN[goal]})</span>
+          </h2>
           <p className="mt-0.5 text-[14px] text-muted">{GOAL_QUESTION[goal]}</p>
         </div>
         <p className="flex items-center gap-2 text-[13px] text-muted tabular">
