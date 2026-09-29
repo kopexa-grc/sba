@@ -16,6 +16,7 @@ const SECTIONS = [
   { id: "versionen", title: "Versionen & Änderungsprotokoll" },
   { id: "schema", title: "Bewertungsschema" },
   { id: "daten", title: "Import, Export & Datenschutz" },
+  { id: "haftung", title: "Haftung & Grenzen" },
 ];
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -231,6 +232,31 @@ export function Help() {
             Alle Daten liegen ausschließlich in diesem Browser (IndexedDB). Es werden keine Inhalte an Server übertragen. Die
             App funktioniert nach dem ersten Laden vollständig offline und lässt sich als App installieren. Löschen Sie die
             Browserdaten, sind die Analysen weg – speichern Sie regelmäßig alles als Datei. Die App erinnert nach 30 Tagen daran.
+          </p>
+        </Section>
+
+        <Section id="haftung" title="Haftung & Grenzen">
+          <p>
+            Die Kopexa Schutzbedarfsanalyse ist ein kostenloses Hilfsmittel, um den Schutzbedarf strukturiert und
+            nachvollziehbar nach der Methodik des BSI-Standards 200-2 zu ermitteln. Sie ersetzt keine Rechts-, Datenschutz-
+            oder Auditberatung und keine Prüfung durch eine Zertifizierungsstelle.
+          </p>
+          <p>
+            Einstufungen, Begründungen und daraus abgeleitete Maßnahmen liegen in der Verantwortung der anwendenden
+            Organisation. Fragenkatalog, Kategorien und Maßnahmenvorschläge sind Beispiele und müssen gegebenenfalls an die
+            eigenen Anforderungen angepasst werden; sie erheben keinen Anspruch auf Vollständigkeit.
+          </p>
+          <p>
+            Die Software wird ohne Gewähr bereitgestellt. Kopexa haftet nicht für Schäden aus der Nutzung, insbesondere nicht
+            für Datenverluste – die Daten liegen ausschließlich in Ihrem Browser; sichern Sie sie regelmäßig als Datei.
+            Unberührt bleibt die Haftung für Vorsatz und grobe Fahrlässigkeit sowie nach zwingenden gesetzlichen Vorschriften.
+          </p>
+          <p>
+            Der Quellcode steht unter der Apache License 2.0 auf{" "}
+            <a className="underline underline-offset-2" href="https://github.com/kopexa-grc/sba">
+              github.com/kopexa-grc/sba
+            </a>
+            .
           </p>
         </Section>
       </article>

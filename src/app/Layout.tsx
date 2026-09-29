@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet } from "react-router";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { Button, cn } from "../components/ui";
 import { FileMenu } from "../components/FileMenu";
+import kopexaLogo from "../assets/kopexa-logo.png";
 import { useRouteFocus } from "../lib/a11y";
 import { FileActionsProvider } from "./file-actions";
 import { useSession } from "./session";
@@ -106,18 +107,34 @@ export function Layout() {
       </main>
 
       <footer className="no-print border-t border-line bg-paper">
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-[12px] text-muted sm:px-6">
-          <span className="inline-flex items-center gap-1.5">
-            <LockKeyhole className="size-3.5" aria-hidden />
-            Alle Daten bleiben lokal in diesem Browser – keine Übertragung an Server.
-          </span>
-          {!online && (
-            <span className="inline-flex items-center gap-1.5 text-ink">
-              <CloudOff className="size-3.5" aria-hidden /> Offline – voll funktionsfähig
+        <div className="mx-auto grid max-w-[1280px] gap-3 px-4 py-5 text-[12.5px] text-muted sm:px-6">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <a href="https://kopexa.com" className="inline-flex items-center gap-2 text-ink hover:underline" aria-label="Kopexa – Website öffnen">
+              <img src={kopexaLogo} alt="" className="h-4 w-auto" width={63} height={16} />
+              <span className="sr-only">Kopexa</span>
+            </a>
+            <span>Ein kostenloses Werkzeug von Kopexa für die Schutzbedarfsfeststellung nach BSI-Standard 200-2.</span>
+            <span className="inline-flex items-center gap-1.5">
+              <LockKeyhole className="size-3.5" aria-hidden />
+              Alle Daten bleiben in diesem Browser.
             </span>
-          )}
-          <nav aria-label="Rechtliches" className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:ml-auto">
-            <span>© Kopexa GmbH</span>
+            {!online && (
+              <span className="inline-flex items-center gap-1.5 text-ink">
+                <CloudOff className="size-3.5" aria-hidden /> Offline – voll funktionsfähig
+              </span>
+            )}
+          </div>
+          <p>
+            Hilfsmittel ohne Gewähr, kein Ersatz für Rechts-, Datenschutz- oder Auditberatung.{" "}
+            <Link to="/hilfe#haftung" className="underline underline-offset-2 hover:text-ink">
+              Hinweise zu Haftung und Grenzen
+            </Link>
+          </p>
+          <nav aria-label="Rechtliches und Quellcode" className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span>© {new Date().getFullYear()} Kopexa GmbH</span>
+            <a className="underline-offset-2 hover:text-ink hover:underline" href="https://kopexa.com">
+              kopexa.com
+            </a>
             <a className="underline-offset-2 hover:text-ink hover:underline" href="https://kopexa.com/de/legal/imprint">
               Impressum
             </a>
@@ -126,6 +143,9 @@ export function Layout() {
             </a>
             <a className="underline-offset-2 hover:text-ink hover:underline" href="https://kopexa.com/de/legal/accessibility-statement">
               Barrierefreiheit
+            </a>
+            <a className="underline-offset-2 hover:text-ink hover:underline" href="https://github.com/kopexa-grc/sba">
+              Quellcode auf GitHub (Apache-2.0)
             </a>
           </nav>
         </div>

@@ -566,6 +566,10 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
         <Text style={[s.small, { marginTop: 4 }]}>
           Versions-ID <Text style={s.mono}>{version.id}</Text>
         </Text>
+        <Text style={[s.small, { marginTop: 6 }]}>
+          Erstellt mit der Kopexa Schutzbedarfsanalyse (schutzbedarf.kopexa.com), einem kostenlosen Hilfsmittel ohne Gewähr. Kein
+          Ersatz für Rechts-, Datenschutz- oder Auditberatung; Einstufung und Begründung verantwortet die anwendende Organisation.
+        </Text>
       </View>
     </>
   );

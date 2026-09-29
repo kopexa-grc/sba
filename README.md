@@ -61,3 +61,8 @@ Push auf `main` → GitHub Actions (Typecheck, Tests, Build) → GitHub Pages. G
 
 Umstellen auf die Domain: in Cloudflare `CNAME schutzbedarf → kopexa-grc.github.io` (DNS only) anlegen, die beiden
 Variablen setzen, in den Pages-Settings die Custom Domain eintragen und den Workflow neu laufen lassen.
+
+## Lizenz und Hinweise
+
+Apache License 2.0 – siehe [LICENSE](LICENSE) und [NOTICE](NOTICE). „Kopexa“ und das Kopexa-Logo sind Marken der
+Kopexa GmbH. Die Anwendung ist ein Hilfsmittel ohne Gewähr und ersetzt keine Rechts-, Datenschutz- oder Auditberatung.
