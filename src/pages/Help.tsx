@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { LevelPill } from "../components/level";
+import { LevelMark } from "../components/level";
 import { CATALOG, SCENARIO_SHORT } from "../domain/catalog";
 
 const SECTIONS = [
@@ -16,7 +16,7 @@ const SECTIONS = [
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <section id={id} className="scroll-mt-20 border-t border-line pt-6">
-      <h2 className="text-[19px] font-bold">{title}</h2>
+      <h2 className="text-[17px] font-semibold">{title}</h2>
       <div className="mt-2 grid gap-3 text-[14px] leading-relaxed text-ink/90">{children}</div>
     </section>
   );
@@ -24,13 +24,13 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export function Help() {
   return (
-    <div className="mx-auto grid max-w-[1100px] gap-8 px-4 py-8 md:grid-cols-[200px_minmax(0,1fr)]">
+    <div className="mx-auto grid max-w-[1100px] gap-8 px-4 py-8 sm:px-6 md:grid-cols-[200px_minmax(0,1fr)]">
       <nav aria-label="Inhalt" className="md:sticky md:top-20 md:self-start">
-        <div className="mb-2 text-[11.5px] font-semibold tracking-wide text-muted uppercase">Handbuch</div>
+        <div className="mb-2 px-2 text-[13px] font-semibold">Inhalt</div>
         <ul className="grid gap-0.5 text-[13px]">
           {SECTIONS.map((s) => (
             <li key={s.id}>
-              <a href={`#${s.id}`} className="block rounded px-2 py-1 text-muted hover:bg-paper hover:text-ink">
+              <a href={`#${s.id}`} className="block rounded-md px-2 py-1 text-muted hover:bg-surface hover:text-ink">
                 {s.title}
               </a>
             </li>
@@ -39,7 +39,7 @@ export function Help() {
       </nav>
       <article className="grid min-w-0 gap-6">
         <header>
-          <h1 className="text-[28px] leading-tight font-bold">Schutzbedarfsanalyse – Handbuch</h1>
+          <h1 className="text-[24px] leading-tight font-semibold">Schutzbedarfsanalyse – Handbuch</h1>
           <p className="mt-2 max-w-2xl text-[15px] text-muted">
             Welcher Schaden entsteht der Organisation oder Dritten, wenn Vertraulichkeit, Integrität oder Verfügbarkeit
             eines Assets verletzt werden? Diese Frage beantwortet die Schutzbedarfsanalyse – als Grundlage jedes ISMS nach
@@ -72,8 +72,8 @@ export function Help() {
               ["Integrität", "Sind die Daten korrekt und unverfälscht?", "Manipulierte Buchungsdaten, unbemerkte Konfigurationsänderungen."],
               ["Verfügbarkeit", "Stehen System und Daten rechtzeitig bereit?", "Systemausfall, Ransomware, DoS, Leitungsunterbrechung."],
             ].map(([t, q, e]) => (
-              <div key={t} className="rounded-lg border border-line bg-paper p-3">
-                <dt className="font-display text-[15px] font-semibold">{t}</dt>
+              <div key={t}>
+                <dt className="text-[14px] font-semibold">{t}</dt>
                 <dd className="mt-1 text-[13px]">{q}</dd>
                 <dd className="mt-1 text-[12.5px] text-muted">{e}</dd>
               </div>
@@ -90,9 +90,9 @@ export function Help() {
                 [3, "Die Schadensauswirkungen können ein existenziell bedrohliches, katastrophales Ausmaß erreichen: Existenzgefährdung, Gefahr für Leib und Leben, Ausfall kritischer Infrastrukturen."],
               ] as const
             ).map(([l, t]) => (
-              <div key={l} className="flex flex-col gap-1.5 rounded-lg border border-line bg-paper p-3 sm:flex-row sm:items-start sm:gap-4">
+              <div key={l} className="flex flex-col gap-1.5 border-t border-line pt-3 sm:flex-row sm:items-start sm:gap-4">
                 <span className="w-24 shrink-0">
-                  <LevelPill level={l} />
+                  <LevelMark level={l} />
                 </span>
                 <span className="text-[13.5px]">{t}</span>
               </div>
@@ -109,10 +109,10 @@ export function Help() {
             Jedes Szenario beginnt mit einer Vorfrage (Ja/Nein). Wird sie verneint, ist das Szenario „Normal“. Wird sie bejaht,
             wählen Sie das Schadensausmaß. So entstehen keine widersprüchlichen Eingaben wie im alten Excel-Bogen.
           </p>
-          <ul className="grid gap-1.5 sm:grid-cols-2">
+          <ul className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
             {CATALOG.I.scenarios.map((s) => (
-              <li key={s.id} className="rounded-md bg-paper px-3 py-2 ring-1 ring-line">
-                <div className="text-[13.5px] font-semibold">{SCENARIO_SHORT[s.id]}</div>
+              <li key={s.id} className="border-t border-line pt-2">
+                <div className="text-[13.5px] font-medium">{SCENARIO_SHORT[s.id]}</div>
                 <div className="text-[12.5px] text-muted">{s.hint}</div>
               </li>
             ))}

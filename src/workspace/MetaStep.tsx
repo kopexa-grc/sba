@@ -39,15 +39,15 @@ export function MetaStep() {
   );
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <div>
-        <h2 className="text-[21px] font-bold">Asset &amp; Geltungsbereich</h2>
-        <p className="mt-0.5 text-[13.5px] text-muted">
+        <h2 className="text-[20px] font-semibold">Asset &amp; Scope</h2>
+        <p className="mt-0.5 text-[14px] text-muted">
           Was wird untersucht, wer verantwortet es und wo verläuft die Grenze der Betrachtung?
         </p>
       </div>
 
-      <section className="grid gap-4 rounded-lg border border-line bg-paper p-4">
+      <section className="grid gap-4">
         <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
           {text("name", { required: true })}
           <Field label={META_LABEL.type}>
@@ -66,7 +66,8 @@ export function MetaStep() {
         {text("scope", { multiline: true })}
       </section>
 
-      <section className="grid gap-4 rounded-lg border border-line bg-paper p-4 md:grid-cols-2">
+      <section className="grid gap-4 border-t border-line pt-8 md:grid-cols-2">
+        <h3 className="text-[15px] font-semibold md:col-span-2">Verantwortung</h3>
         {text("owner", { required: true })}
         {text("orgUnit")}
         {text("contact")}
@@ -74,11 +75,12 @@ export function MetaStep() {
         {text("location")}
       </section>
 
-      <section className="grid gap-4 rounded-lg border border-line bg-paper p-4">
+      <section className="grid gap-4 border-t border-line pt-8">
+        <h3 className="text-[15px] font-semibold">Personenbezogene Daten</h3>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-[13.5px] font-medium">{META_LABEL.personalData}</div>
-            <div className="text-[12.5px] text-muted">Werden Daten natürlicher Personen verarbeitet (Art. 4 Nr. 1 DSGVO)?</div>
+            <div className="text-[14px]">Werden personenbezogene Daten verarbeitet?</div>
+            <div className="text-[13px] text-muted">Daten natürlicher Personen nach Art. 4 Nr. 1 DSGVO</div>
           </div>
           <Segmented
             label={META_LABEL.personalData}
@@ -97,12 +99,10 @@ export function MetaStep() {
           />
         </div>
         {m.personalData && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="text-[13.5px] font-medium">{META_LABEL.specialCategoryData}</div>
-              <div className="text-[12.5px] text-muted">
-                Gesundheit, Religion, Gewerkschaft, Biometrie, Herkunft, Sexualleben (Art. 9 DSGVO)
-              </div>
+              <div className="text-[14px]">Auch besondere Kategorien nach Art. 9 DSGVO?</div>
+              <div className="text-[13px] text-muted">Gesundheit, Religion, Gewerkschaft, Biometrie, Herkunft, Sexualleben</div>
             </div>
             <Segmented
               label={META_LABEL.specialCategoryData}
@@ -118,8 +118,9 @@ export function MetaStep() {
         )}
       </section>
 
-      <section className="grid gap-2 rounded-lg border border-line bg-paper p-4">
-        <Field label="Anlass / Beschreibung dieser Version" hint="Erscheint in der Änderungshistorie des Deckblatts.">
+      <section className="grid gap-4 border-t border-line pt-8">
+        <h3 className="text-[15px] font-semibold">Version</h3>
+        <Field label="Anlass dieser Version" hint="Erscheint in der Änderungshistorie des Deckblatts.">
           {(id) => (
             <CommitInput
               id={id}

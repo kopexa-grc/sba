@@ -1,11 +1,10 @@
-import { Info } from "lucide-react";
 import { useId } from "react";
-import { LevelGauge, LevelPill, LEVEL_BG } from "../components/level";
+import { LevelBars, LevelMark } from "../components/level";
 import { Field, Segmented, cn } from "../components/ui";
 import { CATALOG, type ScenarioDef } from "../domain/catalog";
 import { DEFINITIONS } from "../domain/definitions";
 import { goalResult, scenarioLevel } from "../domain/scoring";
-import { GOAL_LABEL, LEVEL_LABEL, type Goal, type ScenarioAnswer } from "../domain/types";
+import { GOAL_LABEL, GOAL_SHORT, LEVEL_LABEL, type Goal, type ScenarioAnswer } from "../domain/types";
 import { emptyAnswer } from "../domain/versioning";
 import { CommitInput, useEditor } from "./editor";
 
@@ -20,28 +19,29 @@ export function GoalStep({ goal }: { goal: Goal }) {
   const def = CATALOG[goal];
   const r = goalResult(version, goal);
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
-          <h2 className="text-[21px] font-bold">{GOAL_LABEL[goal]}</h2>
-          <p className="mt-0.5 text-[13.5px] text-muted">{GOAL_QUESTION[goal]}</p>
+          <h2 className="text-[20px] font-semibold">{GOAL_LABEL[goal]}</h2>
+          <p className="mt-0.5 text-[14px] text-muted">{GOAL_QUESTION[goal]}</p>
         </div>
-        <div className="flex items-center gap-2 text-[12.5px] text-muted tabular">
-          {r.answered}/{r.total} beantwortet · Maximum
-          <LevelPill level={r.computed} />
-        </div>
+        <p className="flex items-center gap-2 text-[13px] text-muted tabular">
+          {r.answered} von {r.total} bewertet · Maximum <LevelMark level={r.computed} />
+        </p>
       </div>
       {def.scenarios.map((s, i) => (
-        <ScenarioCard key={s.id} goal={goal} def={s} index={i + 1} isDriver={r.complete && r.drivers.includes(s.id) && (r.computed ?? 0) > 1} />
+        <ScenarioCard
+          key={s.id}
+          goal={goal}
+          def={s}
+          index={i + 1}
+          isDriver={r.complete && r.drivers.includes(s.id) && (r.computed ?? 0) > 1}
+        />
       ))}
       {def.notApplicable.map((n) => (
-        <section key={n.id} className="rounded-lg border border-dashed border-line bg-paper/60 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-[14px] font-semibold text-muted">{n.title}</h3>
-            <span className="text-[11.5px] text-muted">nicht relevant</span>
-          </div>
-          <p className="mt-1 text-[13px] text-muted">{n.notApplicable}</p>
-        </section>
+        <p key={n.id} className="px-1 text-[13px] text-muted">
+          <span className="font-medium">{n.title}: nicht bewertet.</span> {n.notApplicable}
+        </p>
       ))}
     </div>
   );
@@ -53,6 +53,7 @@ function ScenarioCard({ goal, def, index, isDriver }: { goal: Goal; def: Scenari
   const level = scenarioLevel(answer);
   const groupId = useId();
   const definition = DEFINITIONS.find((d) => d.scenario === def.id);
+  const needsExplanation = level !== null && level >= 2;
 
   const set = (patch: Partial<ScenarioAnswer>) =>
     update((v) => {
@@ -63,89 +64,75 @@ function ScenarioCard({ goal, def, index, isDriver }: { goal: Goal; def: Scenari
     });
 
   return (
-    <section
-      id={`${goal}.${def.id}`}
-      className={cn(
-        "scroll-mt-28 rounded-lg border bg-paper transition-shadow",
-        isDriver ? "border-ink/25 shadow-[inset_3px_0_0_var(--color-ink)]" : "border-line",
-      )}
-    >
-      <header className="flex flex-wrap items-start gap-x-3 gap-y-2 border-b border-line px-4 py-3">
-        <span className="mt-0.5 font-display text-[12px] font-semibold text-muted tabular">
-          {goal === "C" ? "V" : goal === "I" ? "I" : "A"}
-          {index}
+    <section id={`${goal}.${def.id}`} className="scroll-mt-24 rounded-lg border border-line px-5 py-4">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h3 className="min-w-0 text-[15px] font-semibold">
+          <span className="mr-2 font-normal text-muted tabular">
+            {GOAL_SHORT[goal]}
+            {index}
+          </span>
+          {def.title}
+        </h3>
+        <span className="flex items-center gap-3 text-[12.5px] text-muted">
+          {isDriver && <span>bestimmt das Maximum</span>}
+          <LevelMark level={level} />
         </span>
-        <div className="min-w-0 flex-1 basis-[60%]">
-          <h3 className="text-[15px] leading-snug font-semibold">{def.title}</h3>
-          <p className="mt-0.5 text-[12.5px] text-muted">{def.hint}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 max-sm:pl-6 sm:flex-col sm:items-end sm:gap-1">
-          <LevelPill level={level} />
-          {isDriver && <span className="text-[11px] font-medium text-ink">bestimmt das Maximum</span>}
-        </div>
       </header>
+      <p className="mt-0.5 text-[13px] text-muted">{def.hint}</p>
 
-      <div className="grid gap-4 px-4 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-          <p className="max-w-2xl text-[14px] font-medium">{def.gate}</p>
-          <Segmented
-            label={def.gate}
-            value={answer.applies}
-            disabled={readOnly}
-            options={[
-              { value: true, label: "Ja" },
-              { value: false, label: "Nein" },
-            ]}
-            onChange={(applies) => set({ applies })}
-          />
-        </div>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2.5">
+        <p className="max-w-2xl text-[14px]">{def.gate}</p>
+        <Segmented
+          label={def.gate}
+          value={answer.applies}
+          disabled={readOnly}
+          options={[
+            { value: true, label: "Ja" },
+            { value: false, label: "Nein" },
+          ]}
+          onChange={(applies) => set({ applies })}
+        />
+      </div>
 
-        {answer.applies === false && (
-          <p className="-mt-1 text-[12.5px] text-muted">
-            Einstufung <strong className="text-emerald-700">Normal</strong> – das Szenario ist nicht einschlägig.
-          </p>
-        )}
-
-        {answer.applies && (
-          <fieldset className="grid gap-2">
-            <legend className="mb-2 text-[13px] text-muted">{def.followUp}</legend>
+      {answer.applies && (
+        <fieldset className="mt-4">
+          <legend className="mb-2 text-[13px] text-muted">{def.followUp}</legend>
+          <div className="grid gap-1.5">
             {def.options.map((o) => {
               const checked = answer.level === o.level;
               return (
                 <label
                   key={o.level}
                   className={cn(
-                    "group relative flex cursor-pointer items-start gap-3 overflow-hidden rounded-md border py-2.5 pr-3 pl-4 transition-colors",
-                    checked ? "border-ink/30 bg-surface" : "border-line hover:border-primary-200 hover:bg-primary-50/40",
+                    "flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 transition-colors duration-100",
+                    checked ? "border-primary-950 bg-surface" : "border-line hover:bg-surface",
                     readOnly && "cursor-default",
+                    readOnly && !checked && "hover:bg-transparent",
                   )}
                 >
-                  <span className={cn("absolute inset-y-0 left-0 w-1", checked ? LEVEL_BG[o.level] : "bg-transparent")} />
                   <input
                     type="radio"
                     name={groupId}
-                    className="mt-1 size-3.5 accent-primary-950"
+                    className="mt-[3px] size-3.5 shrink-0 accent-primary-950"
                     checked={checked}
                     disabled={readOnly}
                     onChange={() => set({ level: o.level })}
                   />
                   <span className="min-w-0 flex-1 text-[13.5px] leading-snug">{o.text}</span>
-                  <span className="flex shrink-0 items-center gap-1.5 pt-0.5 text-[12px] font-medium text-muted">
-                    <LevelGauge level={o.level} />
+                  <span className="flex w-[84px] shrink-0 items-center justify-end gap-1.5 pt-[2px] text-[12.5px] text-muted">
                     {LEVEL_LABEL[o.level]}
+                    <LevelBars level={o.level} />
                   </span>
                 </label>
               );
             })}
-          </fieldset>
-        )}
+          </div>
+        </fieldset>
+      )}
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field
-            label="Erläuterung Schutzbedarf"
-            required={level !== null && level >= 2}
-            hint={level !== null && level >= 2 ? "Pflicht bei „Hoch“ und „Sehr hoch“ – Auditoren fordern diese Begründung." : undefined}
-          >
+      {answer.applies !== null && (
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <Field label="Erläuterung" required={needsExplanation} hint={needsExplanation ? "Bei Hoch und Sehr hoch erforderlich." : undefined}>
             {(id) => (
               <CommitInput
                 id={id}
@@ -165,36 +152,34 @@ function ScenarioCard({ goal, def, index, isDriver }: { goal: Goal; def: Scenari
                 rows={2}
                 value={answer.notes}
                 onCommit={(notes) => set({ notes })}
-                placeholder="Betroffene Daten, Verträge, Annahmen …"
+                placeholder="Betroffene Daten, Verträge, Annahmen"
               />
             )}
           </Field>
         </div>
+      )}
 
-        {definition && (
-          <details className="group text-[12.5px] text-muted">
-            <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 hover:text-ink">
-              <Info className="size-3.5" /> Definition der Schutzbedarfskategorien
-            </summary>
-            <dl className="mt-2 grid gap-2 rounded-md bg-surface p-3 md:grid-cols-3">
-              {(
-                [
-                  [1, definition.normal[goal]],
-                  [2, definition.high[goal]],
-                  [3, definition.veryHigh[goal]],
-                ] as const
-              ).map(([l, t]) => (
-                <div key={l}>
-                  <dt className="mb-1">
-                    <LevelPill level={l} />
-                  </dt>
-                  <dd className="leading-relaxed text-ink/80">{t}</dd>
-                </div>
-              ))}
-            </dl>
-          </details>
-        )}
-      </div>
+      {definition && (
+        <details className="mt-3 text-[13px]">
+          <summary className="cursor-pointer text-muted hover:text-ink">Definitionen der Schutzbedarfskategorien</summary>
+          <dl className="mt-3 grid gap-4 border-t border-line pt-3 md:grid-cols-3">
+            {(
+              [
+                [1, definition.normal[goal]],
+                [2, definition.high[goal]],
+                [3, definition.veryHigh[goal]],
+              ] as const
+            ).map(([l, t]) => (
+              <div key={l}>
+                <dt className="mb-1">
+                  <LevelMark level={l} />
+                </dt>
+                <dd className="leading-relaxed text-muted">{t}</dd>
+              </div>
+            ))}
+          </dl>
+        </details>
+      )}
     </section>
   );
 }

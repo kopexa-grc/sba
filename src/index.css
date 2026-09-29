@@ -22,7 +22,7 @@
   --color-ink: oklch(0.2 0.02 255);
   --color-muted: oklch(0.5 0.02 255);
   --color-line: oklch(0.915 0.008 250);
-  --color-surface: oklch(0.975 0.004 250);
+  --color-surface: oklch(0.972 0.004 250);
   --color-paper: #ffffff;
 
   /* Traffic light for protection levels (brief: emerald-500 / amber-500 / red-500). */
@@ -41,12 +41,10 @@
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply bg-surface font-sans text-[14px] leading-[1.5] text-ink antialiased;
+    @apply bg-paper font-sans text-[14px] leading-[1.55] text-ink antialiased;
   }
-  h1,
-  h2,
-  h3 {
-    @apply font-display tracking-[-0.01em];
+  h1 {
+    @apply font-display tracking-[-0.015em];
   }
   :focus-visible {
     outline: 2px solid var(--color-primary-500);

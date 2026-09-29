@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { AlertTriangle, CircleAlert, Info } from "lucide-react";
 import {
   forwardRef,
   useEffect,
@@ -19,15 +20,16 @@ export function cn(...inputs: ClassValue[]) {
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const BUTTON: Record<ButtonVariant, string> = {
-  primary: "bg-primary-950 text-white hover:bg-primary-800 disabled:bg-primary-950/40",
-  secondary: "bg-paper text-ink border border-line hover:border-primary-300 hover:bg-primary-50 disabled:opacity-50",
-  ghost: "text-ink hover:bg-primary-50 disabled:opacity-40",
-  danger: "bg-paper text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-50",
+  primary: "bg-primary-950 text-white hover:bg-primary-900 disabled:bg-primary-950/35",
+  secondary: "border border-line bg-paper text-ink hover:bg-surface disabled:text-muted",
+  ghost: "text-ink hover:bg-surface disabled:text-muted",
+  danger: "border border-line bg-paper text-red-700 hover:bg-surface disabled:text-muted",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: "sm" | "md";
+  /** Only for icons that carry meaning (see styleguide). */
   icon?: ReactNode;
 }
 
@@ -40,8 +42,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed",
-        size === "sm" ? "h-7 px-2.5 text-[12.5px]" : "h-8.5 px-3 text-[13px]",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-colors duration-100 disabled:cursor-not-allowed",
+        size === "sm" ? "h-7 px-2.5 text-[12.5px]" : "h-8 px-3 text-[13.5px]",
         BUTTON[variant],
         className,
       )}
@@ -54,25 +56,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 });
 
 const FIELD =
-  "w-full rounded-md border border-line bg-paper px-2.5 text-[13.5px] text-ink placeholder:text-muted/70 transition-colors hover:border-primary-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:bg-surface disabled:text-muted read-only:bg-surface";
+  "w-full rounded-md border border-line bg-paper px-2.5 text-[13.5px] text-ink placeholder:text-muted/60 transition-colors duration-100 hover:border-ink/25 focus:border-primary-950 focus:outline-none aria-invalid:border-red-700 disabled:bg-surface disabled:text-muted";
+const READ_ONLY = "read-only:border-transparent read-only:bg-surface read-only:hover:border-transparent";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
   { className, ...rest },
   ref,
 ) {
-  return <input ref={ref} className={cn(FIELD, "h-8.5", className)} {...rest} />;
+  return <input ref={ref} className={cn(FIELD, READ_ONLY, "h-8", className)} {...rest} />;
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
   { className, rows = 3, ...rest },
   ref,
 ) {
-  return <textarea ref={ref} rows={rows} className={cn(FIELD, "py-2 leading-relaxed", className)} {...rest} />;
+  return <textarea ref={ref} rows={rows} className={cn(FIELD, READ_ONLY, "py-1.5 leading-relaxed", className)} {...rest} />;
 });
 
 export function Select({ className, children, ...rest }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(FIELD, "h-8.5 pr-8", className)} {...rest}>
+    <select className={cn(FIELD, "h-8 pr-8", className)} {...rest}>
       {children}
     </select>
   );
@@ -95,22 +98,22 @@ export function Field({
 }) {
   const id = useId();
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <label htmlFor={id} className="text-[12.5px] font-medium text-ink">
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <label htmlFor={id} className="text-[13px] font-medium text-ink">
         {label}
-        {required && <span className="ml-0.5 text-red-600">*</span>}
+        {required && <span className="ml-1.5 font-normal text-muted">(Pflicht)</span>}
       </label>
       {children(id)}
       {error ? (
-        <p className="text-[12px] text-red-700">{error}</p>
+        <p className="text-[12.5px] text-red-700">{error}</p>
       ) : hint ? (
-        <p className="text-[12px] text-muted">{hint}</p>
+        <p className="text-[12.5px] text-muted">{hint}</p>
       ) : null}
     </div>
   );
 }
 
-/** Two-or-more option toggle (e.g. Ja / Nein). */
+/** Two-or-three option toggle (e.g. Ja / Nein). */
 export function Segmented<T extends string | number | boolean>({
   value,
   options,
@@ -125,8 +128,8 @@ export function Segmented<T extends string | number | boolean>({
   label: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex self-start rounded-md border border-line bg-paper p-0.5">
-      {options.map((o) => {
+    <div role="radiogroup" aria-label={label} className="inline-flex self-start overflow-hidden rounded-md border border-line">
+      {options.map((o, i) => {
         const active = o.value === value;
         return (
           <button
@@ -137,9 +140,10 @@ export function Segmented<T extends string | number | boolean>({
             disabled={disabled}
             onClick={() => onChange(o.value)}
             className={cn(
-              "h-7 min-w-14 rounded-[4px] px-3 text-[13px] font-medium transition-colors disabled:cursor-not-allowed",
-              active ? "bg-primary-950 text-white" : "text-muted hover:bg-primary-50 hover:text-ink",
-              disabled && !active && "opacity-60",
+              "h-8 min-w-16 px-3.5 text-[13.5px] transition-colors duration-100 disabled:cursor-not-allowed",
+              i > 0 && "border-l border-line",
+              active ? "bg-primary-950 font-medium text-white" : "bg-paper text-ink hover:bg-surface",
+              disabled && !active && "text-muted hover:bg-paper",
             )}
           >
             {o.label}
@@ -150,30 +154,29 @@ export function Segmented<T extends string | number | boolean>({
   );
 }
 
-export function Badge({ children, tone = "neutral", className }: { children: ReactNode; tone?: Tone; className?: string }) {
+/** Inline notice: signal-colored icon, text in ink, no background. */
+export function Notice({
+  tone = "info",
+  children,
+  className,
+}: {
+  tone?: "info" | "warning" | "error";
+  children: ReactNode;
+  className?: string;
+}) {
+  const Icon = tone === "error" ? CircleAlert : tone === "warning" ? AlertTriangle : Info;
   return (
-    <span
-      className={cn(
-        "inline-flex h-5 items-center gap-1 rounded-[4px] px-1.5 text-[11.5px] font-medium whitespace-nowrap",
-        TONE[tone],
-        className,
-      )}
-    >
-      {children}
-    </span>
+    <div className={cn("flex gap-2 text-[13px] leading-snug text-ink", className)}>
+      <Icon
+        className={cn(
+          "mt-[2px] size-3.5 shrink-0",
+          tone === "error" ? "text-red-700" : tone === "warning" ? "text-amber-600" : "text-muted",
+        )}
+      />
+      <div className="min-w-0">{children}</div>
+    </div>
   );
 }
-
-export type Tone = "neutral" | "info" | "success" | "warning" | "danger" | "navy";
-
-const TONE: Record<Tone, string> = {
-  neutral: "bg-surface text-muted ring-1 ring-inset ring-line",
-  info: "bg-primary-50 text-primary-800 ring-1 ring-inset ring-primary-100",
-  success: "bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200",
-  warning: "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200",
-  danger: "bg-red-50 text-red-800 ring-1 ring-inset ring-red-200",
-  navy: "bg-primary-950 text-white",
-};
 
 export function Dialog({
   open,
@@ -208,34 +211,75 @@ export function Dialog({
         onClose();
       }}
       className={cn(
-        "m-auto w-[calc(100%-32px)] rounded-lg border border-line bg-paper p-0 text-ink shadow-2xl",
+        "m-auto w-[calc(100%-32px)] rounded-lg border border-line bg-paper p-0 text-ink shadow-[0_16px_48px_-12px_rgb(16_38_62/0.28)]",
         wide ? "max-w-3xl" : "max-w-lg",
       )}
     >
       {open && (
         <div className="flex max-h-[85vh] flex-col">
-          <div className="border-b border-line px-5 pt-4 pb-3">
+          <div className="px-5 pt-5 pb-1">
             <h2 className="text-[16px] font-semibold">{title}</h2>
-            {description && <div className="mt-1 text-[13px] text-muted">{description}</div>}
+            {description && <div className="mt-1 text-[13px] leading-relaxed text-muted">{description}</div>}
           </div>
           <div className="overflow-y-auto px-5 py-4">{children}</div>
-          {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line bg-surface px-5 py-3">{footer}</div>}
+          {footer && <div className="flex flex-wrap justify-end gap-2 px-5 pt-1 pb-5">{footer}</div>}
         </div>
       )}
     </dialog>
   );
 }
 
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("rounded-lg border border-line bg-paper", className)}>{children}</section>;
+/** Section: heading + optional one-line description, no frame. */
+export function Section({
+  title,
+  description,
+  actions,
+  children,
+  className,
+  id,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  id?: string;
+}) {
+  return (
+    <section id={id} className={cn("scroll-mt-24", className)}>
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold">{title}</h2>
+          {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
+        </div>
+        {actions}
+      </div>
+      {children}
+    </section>
+  );
 }
 
 export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-lg border border-dashed border-line bg-paper px-6 py-12 text-center">
-      <h3 className="text-[15px] font-semibold">{title}</h3>
-      {children && <div className="mt-1 max-w-md text-[13px] text-muted">{children}</div>}
-      {action && <div className="mt-4 flex flex-wrap justify-center gap-2">{action}</div>}
+    <div className="max-w-xl py-6">
+      <h2 className="text-[17px] font-semibold">{title}</h2>
+      {children && <div className="mt-1 text-[14px] text-muted">{children}</div>}
+      {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
+    </div>
+  );
+}
+
+/** Dot-separated meta line ("Anwendung · Owner: … · zuletzt …"). */
+export function Meta({ items, className }: { items: ReactNode[]; className?: string }) {
+  const shown = items.filter(Boolean);
+  return (
+    <div className={cn("flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12.5px] text-muted", className)}>
+      {shown.map((it, i) => (
+        <span key={i} className="inline-flex items-center gap-1.5">
+          {i > 0 && <span aria-hidden>·</span>}
+          {it}
+        </span>
+      ))}
     </div>
   );
 }

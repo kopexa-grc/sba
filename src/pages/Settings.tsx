@@ -1,9 +1,8 @@
-import { Download, HardDrive, Trash2, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { exportJson } from "../app/files";
 import { useSession } from "../app/session";
-import { Button, Card, Dialog, Field, Input } from "../components/ui";
+import { Button, Dialog, Field, Input } from "../components/ui";
 import { db } from "../db/db";
 import { SCHEMA_VERSION } from "../io/json";
 
@@ -31,29 +30,27 @@ export function SettingsPage() {
   const [confirmText, setConfirmText] = useState("");
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-5 px-4 py-8">
-      <h1 className="text-[26px] font-bold">Einstellungen</h1>
+    <div className="mx-auto grid max-w-3xl gap-8 px-4 py-8 sm:px-6">
+      <h1 className="text-[24px] font-semibold">Einstellungen</h1>
 
-      <Card className="p-4">
+      <section className="border-t border-line pt-6">
         <div className="flex flex-wrap items-center gap-3">
-          <UserRound className="size-5 text-muted" />
           <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-semibold">Angaben für Audit-Trail und Freigaben</div>
-            <div className="text-[13px] text-muted">
+            <div className="text-[15px] font-semibold">Angaben für Audit-Trail und Freigaben</div>
+            <div className="text-[13.5px] text-muted">
               {identity?.name}
               {identity?.email && <> · {identity.email}</>}
             </div>
           </div>
           <Button onClick={editIdentity}>Ändern</Button>
         </div>
-      </Card>
+      </section>
 
-      <Card className="p-4">
+      <section className="border-t border-line pt-6">
         <div className="flex flex-wrap items-center gap-3">
-          <HardDrive className="size-5 text-muted" />
           <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-semibold">Lokaler Speicher</div>
-            <div className="text-[13px] text-muted">
+            <div className="text-[15px] font-semibold">Lokaler Speicher</div>
+            <div className="text-[13.5px] text-muted">
               Belegt {mb(info.usage)} von {mb(info.quota)} ·{" "}
               {info.persisted ? "dauerhaft gespeichert" : "Browser darf Daten bei Speichermangel entfernen"}
             </div>
@@ -70,27 +67,26 @@ export function SettingsPage() {
             </Button>
           )}
         </div>
-        <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button
-            icon={<Download className="size-4" />}
             onClick={() => guard(() => exportJson(undefined, actor, `SBA_Sicherung_${new Date().toISOString().slice(0, 10)}`))}
           >
-            Alle Analysen sichern (.sba.json)
+            Alle Analysen sichern
           </Button>
-          <Button variant="danger" icon={<Trash2 className="size-4" />} onClick={() => setWipe(true)}>
+          <Button variant="danger" onClick={() => setWipe(true)}>
             Alle Daten löschen …
           </Button>
         </div>
-      </Card>
+      </section>
 
-      <Card className="p-4 text-[13px] text-muted">
-        <div className="mb-1 text-[14px] font-semibold text-ink">Über</div>
+      <section className="border-t border-line pt-6 text-[13.5px] text-muted">
+        <div className="mb-1 text-[15px] font-semibold text-ink">Über</div>
         Kopexa Schutzbedarfsanalyse · Datenformat {SCHEMA_VERSION} · Methodik nach BSI-Standard 200-2 und ISO/IEC 27001.
         Alle Berechnungen, Speicherung und Dateierzeugung laufen ausschließlich im Browser.{" "}
         <Link to="/styleguide" className="text-primary-700 hover:underline">
           Styleguide
         </Link>
-      </Card>
+      </section>
 
       <Dialog
         open={wipe}

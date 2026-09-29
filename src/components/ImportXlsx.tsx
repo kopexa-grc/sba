@@ -1,4 +1,4 @@
-import { AlertTriangle, CircleAlert, FileSpreadsheet, Info, Upload } from "lucide-react";
+
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useSession } from "../app/session";
@@ -8,8 +8,8 @@ import { scenarioLevel } from "../domain/scoring";
 import { GOALS, GOAL_LABEL, LEVEL_LABEL, type Answers, type Goal, type ScenarioAnswer, type ScenarioId } from "../domain/types";
 import { emptyAnswer } from "../domain/versioning";
 import type { LegacyImport } from "../io/xlsx/import";
-import { LevelPill } from "./level";
-import { Badge, Button, Dialog, Field, Input, Select, cn } from "./ui";
+import { LevelMark } from "./level";
+import { Button, Dialog, Field, Input, Notice, Select, cn } from "./ui";
 
 type Key = `${Goal}.${ScenarioId}`;
 
@@ -125,12 +125,9 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
       title={review ? "Excel-Bogen prüfen und übernehmen" : "Bestehenden Excel-Bogen übernehmen"}
       description={
         review ? (
-          <>
-            <FileSpreadsheet className="mr-1 inline size-3.5" />
-            {review.fileName} – Zuordnung der Zeilen prüfen, Widersprüche auflösen, dann als neuen Entwurf anlegen.
-          </>
+          <>{review.fileName}: Zuordnung prüfen, Widersprüche auflösen, dann als Entwurf anlegen.</>
         ) : (
-          "Unterstützt FS_Schutzbedarfsanalyse.xlsx sowie Excel-Prüfberichte aus dieser App. Die Datei wird nur lokal gelesen."
+          "FS_Schutzbedarfsanalyse.xlsx oder ein Excel-Prüfbericht aus dieser App. Die Datei wird nur in diesem Browser gelesen."
         )
       }
       footer={
@@ -147,7 +144,7 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
       }
     >
       {!review ? (
-        <label
+        <div
           onDragOver={(e) => {
             e.preventDefault();
             setDragging(true);
@@ -159,57 +156,51 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
             const f = e.dataTransfer.files[0];
             if (f) load(f);
           }}
-          className={cn(
-            "flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors",
-            dragging ? "border-primary-500 bg-primary-50" : "border-line hover:border-primary-300 hover:bg-primary-50/40",
-          )}
+          className={cn("-m-2 rounded-md p-2 transition-colors", dragging && "bg-surface")}
         >
-          <Upload className="size-6 text-muted" />
-          <span className="text-[14px] font-medium">{busy ? "Datei wird gelesen …" : "XLSX-Datei hierher ziehen oder auswählen"}</span>
-          <span className="text-[12.5px] text-muted">Deckblatt, Fragebogen und Begründungen werden übernommen.</span>
-          <input
-            type="file"
-            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            className="sr-only"
-            disabled={busy}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) load(f);
-              e.target.value = "";
-            }}
-          />
-        </label>
+          <label className="inline-flex">
+            <span className="inline-flex h-8 cursor-pointer items-center rounded-md border border-line px-3 text-[13.5px] font-medium hover:bg-surface">
+              {busy ? "Datei wird gelesen …" : "Datei auswählen"}
+            </span>
+            <input
+              type="file"
+              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) load(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <p className="mt-2 text-[13px] text-muted">oder die Datei hierher ziehen.</p>
+        </div>
       ) : (
         <div className="grid gap-4">
           <Field label="Asset-Bezeichnung" required>
             {(id) => <Input id={id} value={review.name} onChange={(e) => setReview({ ...review, name: e.target.value })} />}
           </Field>
           {(review.data.versionLabel || review.data.statusText) && (
-            <p className="flex gap-2 rounded-md bg-surface px-3 py-2 text-[12.5px] text-muted">
-              <Info className="mt-0.5 size-3.5 shrink-0" />
+            <Notice>
               Im Bogen vermerkt: {review.data.versionLabel && <>Version „{review.data.versionLabel}“</>}
               {review.data.statusText && <> · Status „{review.data.statusText}“</>}. Die Übernahme startet als Entwurf v1.0 –
               die Angaben werden im Audit-Trail festgehalten, eine Freigabe muss in der App erneut erfolgen.
-            </p>
+            </Notice>
           )}
           {issues.length > 0 && (
-            <ul className="grid gap-1 rounded-md border border-line p-2">
+            <div className="grid gap-1.5">
               {issues.map((i, n) => (
-                <li key={n} className="flex gap-2 text-[12.5px]">
-                  {i.severity === "conflict" ? (
-                    <CircleAlert className="mt-0.5 size-3.5 shrink-0 text-red-600" />
-                  ) : (
-                    <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
-                  )}
+                <Notice key={n} tone={i.severity === "conflict" ? "error" : "warning"}>
                   {i.message}
-                </li>
+                </Notice>
               ))}
-            </ul>
+            </div>
           )}
           {GOALS.map((g) => (
             <div key={g}>
-              <h3 className="mb-1.5 text-[13px] font-semibold">{GOAL_LABEL[g]}</h3>
-              <div className="overflow-x-auto rounded-md border border-line">
+              <h3 className="mb-1 text-[14px] font-semibold">{GOAL_LABEL[g]}</h3>
+              <div className="overflow-x-auto border-y border-line">
                 <table className="w-full min-w-[620px] text-[12.5px]">
                   <tbody className="divide-y divide-line">
                     {CATALOG[g].scenarios.map((s) => {
@@ -219,14 +210,14 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
                       const level = scenarioLevel(answer);
                       const conflict = review.conflicts.has(key) && level === null;
                       return (
-                        <tr key={s.id} className={cn(conflict && "bg-red-50/60")}>
-                          <td className="w-[28%] px-2.5 py-2 font-medium">{SCENARIO_SHORT[s.id]}</td>
+                        <tr key={s.id}>
+                          <td className="w-[28%] py-2 pr-3">{SCENARIO_SHORT[s.id]}</td>
                           <td className="w-[36%] px-2.5 py-1.5">
                             <Select
                               aria-label={`Zeile für ${SCENARIO_SHORT[s.id]}`}
                               value={review.rows[key] ?? ""}
                               onChange={(e) => remap(g, s.id, e.target.value ? Number(e.target.value) : null)}
-                              className="h-7 text-[12px]"
+                              className="h-7 text-[12.5px]"
                             >
                               <option value="">– nicht zuordnen –</option>
                               {review.data.candidateRows.map((c) => (
@@ -237,8 +228,8 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
                             </Select>
                           </td>
                           <td className="px-2.5 py-2">
-                            {det?.confidence === "shifted" && <Badge tone="warning">verschoben</Badge>}
-                            {det?.confidence === "missing" && <Badge tone="danger">nicht gefunden</Badge>}
+                            {det?.confidence === "shifted" && <span className="text-[12.5px] text-amber-700">verschoben</span>}
+                            {det?.confidence === "missing" && <span className="text-[12.5px] text-red-700">nicht gefunden</span>}
                           </td>
                           <td className="px-2.5 py-1.5 text-right">
                             {conflict ? (
@@ -249,7 +240,7 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
                                   const l = Number(e.target.value);
                                   setAnswer(g, s.id, l === 1 ? { applies: false, level: null } : { applies: true, level: l as 2 | 3 });
                                 }}
-                                className="h-7 w-auto border-red-300 text-[12px]"
+                                className="h-7 w-auto border-red-700 text-[12.5px]"
                               >
                                 <option value="">Widerspruch – Einstufung wählen</option>
                                 {([1, 2, 3] as const).map((l) => (
@@ -259,7 +250,7 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
                                 ))}
                               </Select>
                             ) : (
-                              <LevelPill level={level} />
+                              <LevelMark level={level} />
                             )}
                           </td>
                         </tr>

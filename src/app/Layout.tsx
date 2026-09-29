@@ -1,4 +1,4 @@
-import { CloudOff, HelpCircle, LockKeyhole, Settings, UserRound } from "lucide-react";
+import { CloudOff, LockKeyhole, Settings, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 import { useRegisterSW } from "virtual:pwa-register/react";
@@ -23,7 +23,7 @@ function useOnline() {
 export function Logo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <rect width="64" height="64" rx="14" fill="currentColor" className="text-white/10" />
+      <rect width="64" height="64" rx="14" fill="#10263e" />
       <rect x="14" y="30" width="9" height="20" rx="2" fill="#10b981" />
       <rect x="27.5" y="22" width="9" height="28" rx="2" fill="#f59e0b" />
       <rect x="41" y="14" width="9" height="36" rx="2" fill="#ef4444" />
@@ -42,18 +42,18 @@ export function Layout() {
   const nav = ({ isActive }: { isActive: boolean }) =>
     cn(
       "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] transition-colors",
-      isActive ? "bg-white/12 text-white" : "text-white/70 hover:bg-white/8 hover:text-white",
+      isActive ? "bg-surface text-ink" : "text-muted hover:text-ink",
     );
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="no-print sticky top-0 z-30 bg-primary-950 text-white">
-        <div className="mx-auto flex h-12 max-w-[1440px] items-center gap-3 px-4">
+      <header className="no-print sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-sm">
+        <div className="mx-auto flex h-13 max-w-[1280px] items-center gap-3 px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <Logo className="size-7" />
-            <span className="font-display text-[15px] leading-none font-semibold tracking-tight">
-              Kopexa <span className="hidden font-normal text-white/60 sm:inline">Schutzbedarfsanalyse</span>
-              <span className="font-normal text-white/60 sm:hidden">SBA</span>
+            <Logo className="size-6" />
+            <span className="text-[14px] leading-none font-semibold">
+              Kopexa <span className="hidden font-normal text-muted sm:inline">Schutzbedarfsanalyse</span>
+              <span className="font-normal text-muted sm:hidden">SBA</span>
             </span>
           </Link>
           <nav className="ml-auto flex items-center gap-0.5">
@@ -61,8 +61,7 @@ export function Layout() {
               Analysen
             </NavLink>
             <NavLink to="/hilfe" className={nav}>
-              <HelpCircle className="size-4" />
-              <span className="hidden sm:inline">Handbuch</span>
+              Handbuch
             </NavLink>
             <NavLink to="/einstellungen" className={nav} aria-label="Einstellungen">
               <Settings className="size-4" />
@@ -70,7 +69,7 @@ export function Layout() {
             <button
               type="button"
               onClick={editIdentity}
-              className="ml-1 hidden h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] text-white/70 hover:bg-white/8 hover:text-white md:inline-flex"
+              className="ml-1 hidden h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] text-muted hover:text-ink md:inline-flex"
               title="Angaben für den Audit-Trail ändern"
             >
               <UserRound className="size-4" />
@@ -81,7 +80,7 @@ export function Layout() {
       </header>
 
       {needRefresh && (
-        <div className="no-print flex items-center justify-center gap-3 bg-primary-100 px-4 py-2 text-[13px] text-primary-950">
+        <div className="no-print flex items-center justify-center gap-3 border-b border-line px-4 py-2 text-[13px]">
           Eine neue Version der App ist verfügbar.
           <Button size="sm" variant="primary" onClick={() => updateServiceWorker(true)}>
             Jetzt aktualisieren
@@ -94,13 +93,13 @@ export function Layout() {
       </main>
 
       <footer className="no-print border-t border-line bg-paper">
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-[12px] text-muted">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-[12px] text-muted sm:px-6">
           <span className="inline-flex items-center gap-1.5">
             <LockKeyhole className="size-3.5" />
             Alle Daten bleiben lokal in diesem Browser – keine Übertragung an Server.
           </span>
           {!online && (
-            <span className="inline-flex items-center gap-1.5 text-primary-800">
+            <span className="inline-flex items-center gap-1.5 text-ink">
               <CloudOff className="size-3.5" /> Offline – voll funktionsfähig
             </span>
           )}

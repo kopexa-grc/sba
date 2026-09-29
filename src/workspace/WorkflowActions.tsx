@@ -1,9 +1,9 @@
-import { ChevronDown, FileDown, FileJson, FileSpreadsheet, GitBranch, Send, ShieldCheck, Trash2, Undo2 } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { exportJson, exportPdf, exportXlsx, baseName } from "../app/files";
 import { useSession } from "../app/session";
-import { Button, Dialog, Field, Segmented, Textarea, cn } from "../components/ui";
+import { Button, Dialog, Field, Notice, Segmented, Textarea, cn } from "../components/ui";
 import { repo } from "../db/repo";
 import { hasBlockingIssues } from "../domain/scoring";
 import type { AssessmentVersion } from "../domain/types";
@@ -48,7 +48,6 @@ export function WorkflowActions({
       {version.status === "draft" && (
         <Button
           variant="primary"
-          icon={<Send className="size-4" />}
           onClick={() => (hasBlockingIssues(version) ? onBlocked() : setPending("submit"))}
         >
           Zur Prüfung einreichen
@@ -56,22 +55,22 @@ export function WorkflowActions({
       )}
       {version.status === "review" && (
         <>
-          <Button icon={<Undo2 className="size-4" />} onClick={() => setPending("reject")}>
+          <Button onClick={() => setPending("reject")}>
             Zurückweisen
           </Button>
-          <Button variant="primary" icon={<ShieldCheck className="size-4" />} onClick={() => setPending("approve")}>
+          <Button variant="primary" onClick={() => setPending("approve")}>
             Freigeben
           </Button>
         </>
       )}
       {(version.status === "approved" || version.status === "archived") && !openDraft && (
-        <Button variant="primary" icon={<GitBranch className="size-4" />} onClick={() => setPending("branch")}>
+        <Button variant="primary" onClick={() => setPending("branch")}>
           Neue Version anlegen
         </Button>
       )}
       {(version.status === "approved" || version.status === "archived") && openDraft && (
         <Button onClick={() => navigate(`/a/${openDraft.assetId}/v/${openDraft.id}`)}>
-          Zur Arbeitsversion v{versionLabel(openDraft)}
+          Zur Arbeitsversion {versionLabel(openDraft)}
         </Button>
       )}
 
@@ -79,31 +78,28 @@ export function WorkflowActions({
         label="Export"
         items={[
           {
-            icon: <FileDown className="size-4" />,
-            label: "PDF-Bericht (Management Summary)",
+            label: "PDF-Bericht",
             onSelect: () => guard(() => exportPdf(version)),
           },
           {
-            icon: <FileSpreadsheet className="size-4" />,
-            label: "Excel-Prüfbericht (.xlsx)",
+            label: "Excel-Prüfbericht",
             onSelect: () => guard(() => exportXlsx(version)),
           },
           {
-            icon: <FileJson className="size-4" />,
-            label: "Datensicherung (.sba.json)",
+            label: "Datensicherung (JSON)",
             onSelect: () => guard(() => exportJson([version.assetId], actor, baseName(version))),
           },
           ...(version.status === "draft" && version.parentVersionId
-            ? [{ icon: <Undo2 className="size-4" />, label: "Arbeitsversion verwerfen", onSelect: () => setPending("discard"), danger: true }]
+            ? [{ label: "Arbeitsversion verwerfen", onSelect: () => setPending("discard"), danger: true }]
             : []),
-          { icon: <Trash2 className="size-4" />, label: "Analyse löschen …", onSelect: () => setPending("delete"), danger: true },
+          { label: "Analyse löschen …", onSelect: () => setPending("delete"), danger: true },
         ]}
       />
 
       <Dialog
         open={pending === "submit"}
         onClose={close}
-        title={`v${versionLabel(version)} zur Prüfung einreichen`}
+        title={`Version ${versionLabel(version)} einreichen`}
         description="Die Version wird schreibgeschützt und als „fachlich freigegeben“ vermerkt. Die prüfende Stelle (z. B. CISO, ISB, DSB) kann sie freigeben oder mit Kommentar zurückweisen."
         footer={
           <>
@@ -145,25 +141,24 @@ export function WorkflowActions({
       <Dialog
         open={pending === "approve"}
         onClose={close}
-        title={`v${version.major}.${version.minor} freigeben und versiegeln`}
+        title={`Version ${version.major}.${version.minor} freigeben`}
         description="Nach der Freigabe sind alle Felder schreibgeschützt. Über den Inhalt wird ein SHA-256-Hash gebildet, mit dem sich spätere Manipulationen nachweisen lassen. Eine bisher gültige Version wird archiviert."
         footer={
           <>
             <Button onClick={close}>Abbrechen</Button>
             <Button
               variant="primary"
-              icon={<ShieldCheck className="size-4" />}
               onClick={() => run(() => repo.approve(version.id, actor, comment.trim() || undefined), "Freigegeben und versiegelt.")}
             >
-              Freigeben als {actorName(actor)}
+              Freigeben
             </Button>
           </>
         }
       >
         {selfApproval && (
-          <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
-            Sie haben diese Version selbst eingereicht. Für das Vier-Augen-Prinzip sollte eine andere Person freigeben.
-          </p>
+          <Notice tone="warning" className="mb-4">
+            Sie haben diese Version selbst eingereicht. Nach dem Vier-Augen-Prinzip sollte eine andere Person freigeben.
+          </Notice>
         )}
         <Field label="Freigabevermerk" hint="Optional, z. B. Rolle und Geltungsdauer der Freigabe.">
           {(id) => <Textarea id={id} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Freigegeben als CISO …" />}
@@ -174,7 +169,7 @@ export function WorkflowActions({
         open={pending === "branch"}
         onClose={close}
         title="Neue Version anlegen"
-        description={`Die freigegebene Version v${versionLabel(version)} bleibt unverändert gültig, bis die neue Version freigegeben ist.`}
+        description={`Die freigegebene Version ${versionLabel(version)} bleibt unverändert gültig, bis die neue Version freigegeben ist.`}
         footer={
           <>
             <Button onClick={close}>Abbrechen</Button>
@@ -186,7 +181,7 @@ export function WorkflowActions({
                 if (!next) return;
                 close();
                 navigate(`/a/${next.assetId}/v/${next.id}/stammdaten`);
-                notify(`Arbeitsversion v${versionLabel(next)} angelegt.`);
+                notify(`Arbeitsversion ${versionLabel(next)} angelegt.`);
               }}
             >
               Version anlegen
@@ -199,7 +194,7 @@ export function WorkflowActions({
             <div className="text-[13px]">
               <div className="font-medium">Art der Änderung</div>
               <div className="text-muted">
-                Neue Version: v{nextNumber(versions, version, kind).major}.{nextNumber(versions, version, kind).minor}
+                Neue Version {nextNumber(versions, version, kind).major}.{nextNumber(versions, version, kind).minor}
               </div>
             </div>
             <Segmented
@@ -274,7 +269,6 @@ export function WorkflowActions({
 }
 
 interface MenuItem {
-  icon: React.ReactNode;
   label: string;
   onSelect: () => void;
   danger?: boolean;
@@ -303,7 +297,7 @@ function Menu({ label, items }: { label: string; items: MenuItem[] }) {
         <ChevronDown className="size-3.5" />
       </Button>
       {open && (
-        <div role="menu" className="absolute right-0 z-40 mt-1 w-64 rounded-md border border-line bg-paper p-1 shadow-lg">
+        <div role="menu" className="absolute right-0 z-40 mt-1 w-60 rounded-md border border-line bg-paper py-1 shadow-[0_8px_24px_-8px_rgb(16_38_62/0.22)]">
           {items.map((it, i) => (
             <button
               key={it.label}
@@ -314,12 +308,11 @@ function Menu({ label, items }: { label: string; items: MenuItem[] }) {
                 it.onSelect();
               }}
               className={cn(
-                "flex w-full items-center gap-2 rounded-[4px] px-2.5 py-1.5 text-left text-[13px] hover:bg-primary-50",
-                it.danger && "text-red-700 hover:bg-red-50",
+                "flex w-full px-3 py-1.5 text-left text-[13.5px] hover:bg-surface",
+                it.danger && "text-red-700",
                 it.danger && !items[i - 1]?.danger && "mt-1 border-t border-line pt-2",
               )}
             >
-              {it.icon}
               {it.label}
             </button>
           ))}

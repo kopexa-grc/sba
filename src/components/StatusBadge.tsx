@@ -1,14 +1,14 @@
 import { Lock } from "lucide-react";
 import { STATUS_LABEL, type VersionStatus } from "../domain/types";
-import { Badge, type Tone } from "./ui";
+import { cn } from "./ui";
 
-const TONE: Record<VersionStatus, Tone> = { draft: "info", review: "warning", approved: "success", archived: "neutral" };
-
-export function StatusBadge({ status }: { status: VersionStatus }) {
+/** Status as text; locked states carry a lock glyph. No badge, no color. */
+export function StatusText({ status, className }: { status: VersionStatus; className?: string }) {
+  const locked = status !== "draft";
   return (
-    <Badge tone={TONE[status]}>
-      {(status === "approved" || status === "archived") && <Lock className="size-3" />}
+    <span className={cn("inline-flex items-center gap-1", className)}>
+      {locked && <Lock className="size-3 shrink-0" aria-hidden />}
       {STATUS_LABEL[status]}
-    </Badge>
+    </span>
   );
 }

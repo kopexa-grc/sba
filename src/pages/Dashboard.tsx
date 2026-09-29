@@ -1,19 +1,19 @@
-import { Download, FileJson, FileSpreadsheet, Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useAssetList, type AssetRow } from "../app/data";
 import { exportJson, pickFile } from "../app/files";
 import { useSession } from "../app/session";
 import { ImportXlsxDialog } from "../components/ImportXlsx";
-import { StatusBadge } from "../components/StatusBadge";
-import { TriadChips } from "../components/level";
-import { Badge, Button, Dialog, Empty, Field, Input, Select, cn } from "../components/ui";
+import { StatusText } from "../components/StatusBadge";
+import { TriadMarks } from "../components/level";
+import { Button, Dialog, Empty, Field, Input, Notice, Select, cn } from "../components/ui";
 import { repo } from "../db/repo";
 import { allResults, progress } from "../domain/scoring";
 import { ASSET_TYPE_LABEL, STATUS_LABEL, type AssetType, type VersionStatus } from "../domain/types";
 import { versionLabel } from "../domain/versioning";
 import { BundleError, parseBundle, type ParsedBundle } from "../io/json";
-import { formatDate } from "../lib/format";
+import { actorName, formatDate } from "../lib/format";
 
 export function Dashboard() {
   const rows = useAssetList();
@@ -47,50 +47,49 @@ export function Dashboard() {
   if (rows === undefined) return null;
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:py-8">
+    <div className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6">
       <div className="flex flex-wrap items-end gap-x-6 gap-y-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-[26px] leading-tight font-bold">Schutzbedarfsanalysen</h1>
-          <p className="mt-1 max-w-2xl text-[13.5px] text-muted">
-            Je Asset eine Analyse: Vertraulichkeit, Integrität und Verfügbarkeit werden über sechs Schadensszenarien
-            bewertet und nach dem Maximumprinzip zusammengeführt.
+          <h1 className="text-[24px] leading-tight font-semibold">Schutzbedarfsanalysen</h1>
+          <p className="mt-1 max-w-2xl text-[14px] text-muted">
+            Eine Analyse je Asset, bewertet nach BSI-Standard 200-2.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button icon={<FileSpreadsheet className="size-4" />} onClick={() => setXlsxOpen(true)}>
+          <Button onClick={() => setXlsxOpen(true)}>
             Excel importieren
           </Button>
-          <Button icon={<FileJson className="size-4" />} onClick={openBundle}>
+          <Button onClick={openBundle}>
             Sicherung einlesen
           </Button>
-          <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
+          <Button variant="primary" onClick={() => setCreating(true)}>
             Neue Analyse
           </Button>
         </div>
       </div>
 
       {rows.length === 0 ? (
-        <div className="mt-8">
+        <div className="mt-6">
           <Empty
-            title="Noch keine Analysen in diesem Browser"
+            title="Noch keine Analysen"
             action={
               <>
-                <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setCreating(true)}>
-                  Erste Analyse anlegen
+                <Button variant="primary" onClick={() => setCreating(true)}>
+                  Analyse anlegen
                 </Button>
-                <Button icon={<FileSpreadsheet className="size-4" />} onClick={() => setXlsxOpen(true)}>
-                  Bestehenden Excel-Bogen übernehmen
+                <Button onClick={() => setXlsxOpen(true)}>
+                  Excel-Bogen übernehmen
                 </Button>
               </>
             }
           >
-            Legen Sie eine Analyse für ein Asset an oder übernehmen Sie einen ausgefüllten Erhebungsbogen
-            (FS_Schutzbedarfsanalyse.xlsx). Die Daten werden nur lokal gespeichert.
+            Legen Sie eine Analyse an oder übernehmen Sie einen ausgefüllten Excel-Erhebungsbogen. Gespeichert wird nur in
+            diesem Browser.
           </Empty>
         </div>
       ) : (
         <>
-          <div className="mt-6 flex flex-wrap items-center gap-2">
+          <div className="mt-8 flex flex-wrap items-center gap-2">
             <div className="relative w-full sm:w-72">
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted" />
               <Input
@@ -121,10 +120,9 @@ export function Dashboard() {
               size="sm"
               variant="ghost"
               className="ml-auto"
-              icon={<Download className="size-4" />}
               onClick={() => guard(() => exportJson(undefined, actor, `SBA_Sicherung_${new Date().toISOString().slice(0, 10)}`))}
             >
-              Alle sichern (.sba.json)
+              Alle sichern
             </Button>
           </div>
           <AssetTable rows={filtered} />
@@ -139,66 +137,56 @@ export function Dashboard() {
 }
 
 function AssetTable({ rows }: { rows: AssetRow[] }) {
+  const th = "px-3 py-2 text-left text-[12.5px] font-normal text-muted first:pl-2";
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-line bg-paper">
-      <div className="hidden grid-cols-[minmax(0,2.2fr)_auto_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)] gap-4 border-b border-line bg-surface px-4 py-2 text-[11.5px] font-semibold tracking-wide text-muted uppercase md:grid">
-        <span>Asset</span>
-        <span className="w-[92px]">V · I · A</span>
-        <span>Version</span>
-        <span>Fortschritt</span>
-        <span>Zuletzt geändert</span>
-      </div>
-      <ul className="divide-y divide-line">
-        {rows.map((r) => {
-          const v = r.latest;
-          const p = progress(v);
-          const pct = Math.round((p.answered / p.total) * 100);
-          return (
-            <li key={r.assetId}>
-              <Link
-                to={`/a/${r.assetId}/v/${v.id}`}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 px-4 py-3 transition-colors hover:bg-primary-50/60 md:grid-cols-[minmax(0,2.2fr)_auto_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-[14px] font-semibold">{v.meta.name || "Unbenanntes Asset"}</span>
-                  <span className="block truncate text-[12.5px] text-muted">
+    <div className="mt-4 overflow-x-auto">
+      <table className="w-full min-w-[720px] text-[13.5px]">
+        <thead className="border-b border-line">
+          <tr>
+            <th className={th}>Asset</th>
+            <th className={th}>Schutzbedarf</th>
+            <th className={th}>Version</th>
+            <th className={cn(th, "text-right")}>Bewertet</th>
+            <th className={th}>Geändert</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {rows.map((r) => {
+            const v = r.latest;
+            const p = progress(v);
+            return (
+              <tr key={r.assetId} className="group relative hover:bg-surface">
+                <td className="py-3 pr-3 pl-2 align-top">
+                  <Link to={`/a/${r.assetId}/v/${v.id}`} className="font-medium after:absolute after:inset-0">
+                    {v.meta.name || "Unbenanntes Asset"}
+                  </Link>
+                  <div className="text-[12.5px] text-muted">
                     {ASSET_TYPE_LABEL[v.meta.type]}
                     {v.meta.owner && <> · {v.meta.owner}</>}
-                  </span>
-                </span>
-                <span className="w-[92px]">
-                  <TriadChips results={allResults(v)} />
-                </span>
-                <span className="flex flex-wrap items-center gap-1.5">
-                  <Badge tone="neutral" className="tabular">
-                    v{versionLabel(v)}
-                  </Badge>
-                  <StatusBadge status={v.status} />
+                  </div>
+                </td>
+                <td className="px-3 py-3 align-top">
+                  <TriadMarks results={allResults(v)} />
+                </td>
+                <td className="px-3 py-3 align-top whitespace-nowrap">
+                  <span className="tabular">{versionLabel(v)}</span> <StatusText status={v.status} className="text-muted" />
                   {r.approved && r.approved.id !== v.id && (
-                    <Badge tone="success" className="tabular">
-                      gültig: v{versionLabel(r.approved)}
-                    </Badge>
+                    <div className="text-[12.5px] text-muted tabular">gültig: {versionLabel(r.approved)}</div>
                   )}
-                </span>
-                <span className="flex items-center gap-2 text-[12.5px] text-muted tabular">
-                  <span className="h-1.5 w-20 overflow-hidden rounded-full bg-line">
-                    <span
-                      className={cn("block h-full rounded-full", pct === 100 ? "bg-lvl-1" : "bg-primary-500")}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </span>
+                </td>
+                <td className="px-3 py-3 text-right align-top text-muted tabular">
                   {p.answered}/{p.total}
-                </span>
-                <span className="text-[12.5px] text-muted tabular">
+                </td>
+                <td className="px-3 py-3 align-top text-[12.5px] text-muted tabular">
                   {formatDate(v.updatedAt)}
-                  <span className="block truncate">{v.updatedBy.replace(/ <.*>$/, "")}</span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {rows.length === 0 && <p className="px-4 py-8 text-center text-[13px] text-muted">Keine Analyse passt zum Filter.</p>}
+                  <div className="truncate">{actorName(v.updatedBy)}</div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {rows.length === 0 && <p className="py-8 text-[13.5px] text-muted">Keine Analyse passt zum Filter.</p>}
     </div>
   );
 }
@@ -303,11 +291,11 @@ function BundleDialog({ bundle, onClose }: { bundle: ParsedBundle | null; onClos
             Die Datei enthält <strong>{bundle.records.length} Analysen</strong> mit insgesamt <strong>{versions} Versionen</strong>{" "}
             samt Audit-Trail.
           </p>
-          <ul className="max-h-48 divide-y divide-line overflow-y-auto rounded-md border border-line">
+          <ul className="max-h-48 divide-y divide-line overflow-y-auto border-y border-line">
             {bundle.records.map((r) => {
               const last = r.versions[r.versions.length - 1];
               return (
-                <li key={r.asset.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                <li key={r.asset.id} className="flex items-center justify-between gap-3 py-2">
                   <span className="truncate">{last?.meta.name || "Unbenannt"}</span>
                   <span className="text-[12px] text-muted tabular">{r.versions.length} Version(en)</span>
                 </li>
@@ -315,11 +303,11 @@ function BundleDialog({ bundle, onClose }: { bundle: ParsedBundle | null; onClos
             })}
           </ul>
           {bundle.tampered.length > 0 && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-[13px] text-red-800">
-              <strong>Achtung:</strong> Bei {bundle.tampered.length} freigegebenen Version(en) stimmt der Inhalt nicht mit
+            <Notice tone="error">
+              Bei {bundle.tampered.length} freigegebenen Version(en) stimmt der Inhalt nicht mit
               dem Freigabe-Siegel überein ({bundle.tampered.map((t) => t.name || "Unbenannt").join(", ")}). Die Datei wurde
-              nach der Freigabe verändert. Die Versionen werden mit Warnhinweis übernommen.
-            </div>
+              nach der Freigabe verändert. Die Versionen werden übernommen und als verletzt angezeigt.
+            </Notice>
           )}
         </div>
       )}
