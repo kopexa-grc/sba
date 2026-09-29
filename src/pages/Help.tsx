@@ -148,21 +148,27 @@ export function Help() {
             <em>Schutzbedarf = max(Szenario₁ … Szenarioₙ)</em>. Sind fünf Szenarien „Normal“ und eines „Sehr hoch“, ist der
             Grundwert „Sehr hoch“.
           </p>
-          <p>Nach der formalen Bewertung prüfen Sie im Schritt „Ergebnis &amp; Begründung“ drei Effekte:</p>
+          <p>
+            Diese Rechnung ist bewusst einfach und passt nicht immer zur Wirklichkeit. Dann passen Sie das Ergebnis im Schritt
+            „Ergebnis &amp; Begründung“ über „Ergebnis anpassen“ selbst an. Der BSI-Standard nennt drei typische Gründe
+            (Sondereffekte):
+          </p>
           <ul className="grid gap-1.5 pl-5 [list-style:disc]">
             <li>
-              <strong>Kumulationseffekt</strong> – mehrere „normale“ Schäden ergeben zusammen einen höheren Schaden (Hochstufung).
+              <strong>Vererbung</strong>: Etwas Wichtigeres hängt davon ab. Läuft das Kunden-CRM auf einem Server, braucht der
+              Server mindestens denselben Schutz wie das CRM.
             </li>
             <li>
-              <strong>Verteilungseffekt</strong> – Redundanzen kompensieren den Ausfall einer Komponente (Herabstufung möglich).
+              <strong>Kumulation</strong>: Viele kleine Schäden ergeben zusammen einen großen. Laufen 30 Anwendungen auf einem
+              Server, trifft sein Ausfall alle gleichzeitig. Die Stufe steigt.
             </li>
             <li>
-              <strong>Schutzbedarfsvererbung</strong> – Server, Datenbanken und Netze erben den Schutzbedarf der Prozesse und
-              Anwendungen, die auf ihnen laufen.
+              <strong>Verteilung</strong>: Es gibt Ersatz. Übernimmt ein zweiter Server sofort, schadet der Ausfall des ersten
+              weniger. Die Stufe kann sinken.
             </li>
           </ul>
           <p>
-            Jede Übersteuerung braucht eine eigene Begründung. Für „Hoch“ und „Sehr hoch“ ist zusätzlich eine Begründung je
+            Jede Anpassung braucht eine eigene Begründung. Für „Hoch“ und „Sehr hoch“ ist zusätzlich eine Begründung je
             Grundwert und eine Erläuterung je Szenario Pflicht – Auditoren fordern sie in jeder Prüfung. Ohne sie lässt sich eine Version nicht abschließen.
           </p>
         </Section>

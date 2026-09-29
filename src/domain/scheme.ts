@@ -85,7 +85,7 @@ export const DEFAULT_MEASURES: MeasureCatalog = {
   },
   A: {
     2: [
-      "Datensicherung nach 3-2-1-Regel, dokumentiertes RTO/RPO",
+      "Datensicherung nach 3-2-1-1-0-Regel (3 Kopien, 2 Medien, 1 extern, 1 offline oder unveränderlich, 0 Fehler beim Wiederherstellungstest), dokumentiertes RTO/RPO",
       "Monitoring und Alarmierung",
       "Notfallhandbuch und Wiederanlaufplan",
     ],

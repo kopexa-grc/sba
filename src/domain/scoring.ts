@@ -133,7 +133,7 @@ export function validate(version: AssessmentVersion): Issue[] {
       issues.push({
         severity: "error",
         path: `override.${goal}`,
-        message: `${GOAL_LABEL[goal]}: Manuelle Übersteuerung erfordert eine Begründung.`,
+        message: `${GOAL_LABEL[goal]}: Das angepasste Ergebnis braucht eine Begründung.`,
       });
     }
     if (r.effective !== null && r.effective >= 2 && !version.justifications[goal].trim()) {

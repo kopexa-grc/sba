@@ -11,6 +11,24 @@ import { goalResult, validate, type Issue } from "../domain/scoring";
 import { GOALS, GOAL_EN, GOAL_LABEL, LEVEL_LABEL, OVERRIDE_KIND_LABEL, type Goal, type OverrideKind } from "../domain/types";
 import { CommitInput, useEditor } from "./editor";
 
+/** Plain-language explanation of each special effect, shown under the selection. */
+const OVERRIDE_KIND_HINT: Record<OverrideKind, string> = {
+  inheritance:
+    "Etwas Wichtigeres hängt hiervon ab. Beispiel: Auf dem Server läuft das Kunden-CRM, also braucht der Server mindestens denselben Schutz.",
+  cumulation:
+    "Viele kleine Schäden ergeben zusammen einen großen. Beispiel: Auf einem Server laufen 30 Anwendungen, ein Ausfall trifft alle gleichzeitig. Die Stufe steigt.",
+  distribution:
+    "Es gibt Ersatz. Beispiel: Fällt ein Server aus, übernimmt ein zweiter sofort. Der Ausfall schadet weniger, die Stufe kann sinken.",
+  other: "Ein anderer Grund. Beschreiben Sie ihn unten.",
+};
+
+const OVERRIDE_KIND_EXAMPLE: Record<OverrideKind, string> = {
+  inheritance: "z. B. Auf dem Server läuft das Kunden-CRM, das „Sehr hoch“ eingestuft ist.",
+  cumulation: "z. B. Auf dem Cluster laufen 30 Fachanwendungen, ein Ausfall legt alle gleichzeitig lahm.",
+  distribution: "z. B. Ein zweites Rechenzentrum übernimmt bei Ausfall innerhalb von Minuten.",
+  other: "Beschreiben Sie, warum das berechnete Ergebnis nicht passt.",
+};
+
 export function ResultStep({ basePath }: { basePath: string }) {
   const { version } = useEditor();
   const issues = validate(version);
@@ -19,7 +37,8 @@ export function ResultStep({ basePath }: { basePath: string }) {
       <div>
         <h2 data-focus-heading className="text-[20px] font-semibold focus:outline-none">Ergebnis &amp; Begründung</h2>
         <p className="mt-0.5 text-[14px] text-muted">
-          Maximumprinzip je Grundwert. Danach Kumulations-, Verteilungs- und Vererbungseffekte prüfen.
+          Je Grundwert zählt die höchste Einstufung aus den Fragen. Passt das nicht zur Wirklichkeit, passen Sie es mit
+          Begründung an.
         </p>
       </div>
       {GOALS.map((g) => (
@@ -90,33 +109,37 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
             className="mt-[4px] size-3.5 accent-primary-950"
             checked={!!override}
             disabled={readOnly || r.computed === null}
-            onChange={(e) =>
-              update((v) => {
-                v.overrides[goal] = e.target.checked ? { level: r.computed ?? 1, kind: "cumulation", reason: "" } : null;
-              })
-            }
+            onChange={(e) => {
+              // Read the event now: the mutation runs asynchronously, after React has reset the controlled input.
+              const checked = e.target.checked;
+              void update((v) => {
+                v.overrides[goal] = checked ? { level: r.computed ?? 1, kind: "cumulation", reason: "" } : null;
+              });
+            }}
           />
           <span>
-            Sondereffekt berücksichtigen
+            Ergebnis anpassen (Sondereffekt)
             <span className="block text-[13px] text-muted">
-              Kumulation kann hochstufen, Verteilung durch Redundanz herabstufen, Vererbung übernimmt den Schutzbedarf
-              abhängiger Prozesse und Anwendungen.
+              Die App nimmt automatisch die höchste Einstufung. Manchmal ist das zu niedrig oder zu hoch, etwa weil auf einem
+              Server viele wichtige Anwendungen laufen oder weil es ein Ersatzsystem gibt. Dann legen Sie die Stufe hier selbst
+              fest.
             </span>
           </span>
         </label>
         {override && (
           <div className="mt-4 grid gap-4 pl-6 md:grid-cols-2">
-            <Field label="Effekt">
+            <Field label="Grund" hint={OVERRIDE_KIND_HINT[override.kind]}>
               {(id) => (
                 <Select
                   id={id}
                   value={override.kind}
                   disabled={readOnly}
-                  onChange={(e) =>
-                    update((v) => {
-                      v.overrides[goal] = { ...override, kind: e.target.value as OverrideKind };
-                    })
-                  }
+                  onChange={(e) => {
+                    const kind = e.target.value as OverrideKind;
+                    void update((v) => {
+                      v.overrides[goal] = { ...override, kind };
+                    });
+                  }}
                 >
                   {(Object.keys(OVERRIDE_KIND_LABEL) as OverrideKind[]).map((k) => (
                     <option key={k} value={k}>
@@ -126,17 +149,18 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
                 </Select>
               )}
             </Field>
-            <Field label="Schutzbedarf nach Übersteuerung">
+            <Field label="Neuer Schutzbedarf" hint={`Berechnet: ${r.computed ? LEVEL_LABEL[r.computed] : "offen"}`}>
               {(id) => (
                 <Select
                   id={id}
                   value={override.level}
                   disabled={readOnly}
-                  onChange={(e) =>
-                    update((v) => {
-                      v.overrides[goal] = { ...override, level: Number(e.target.value) as 1 | 2 | 3 };
-                    })
-                  }
+                  onChange={(e) => {
+                    const level = Number(e.target.value) as 1 | 2 | 3;
+                    void update((v) => {
+                      v.overrides[goal] = { ...override, level };
+                    });
+                  }}
                 >
                   {([1, 2, 3] as const).map((l) => (
                     <option key={l} value={l}>
@@ -146,14 +170,14 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
                 </Select>
               )}
             </Field>
-            <Field label="Begründung der Übersteuerung" required className="md:col-span-2">
+            <Field label="Begründung der Anpassung" required className="md:col-span-2">
               {(id) => (
                 <CommitInput
                   id={id}
                   multiline
                   rows={2}
                   value={override.reason}
-                  placeholder="z. B. Server hostet das Kunden-CRM (Vertraulichkeit sehr hoch), daher Vererbung."
+                  placeholder={OVERRIDE_KIND_EXAMPLE[override.kind]}
                   onCommit={(reason) =>
                     update((v) => {
                       v.overrides[goal] = { ...v.overrides[goal]!, reason };
@@ -273,7 +297,7 @@ export function IssueList({ issues, basePath, compact }: { issues: Issue[]; base
         </h2>
       )}
       {all.length === 0 ? (
-        <p className="text-[13px] text-muted">Keine. Die Analyse kann eingereicht werden.</p>
+        <p className="text-[13px] text-muted">Keine. Die Version kann abgeschlossen werden.</p>
       ) : (
         <ul className="divide-y divide-line">
           {shown.map((i, n) => (

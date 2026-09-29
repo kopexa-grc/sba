@@ -115,12 +115,12 @@ export function SettingsPage() {
 
   const errors = schemeErrors(draft.scheme);
   const preview = catalogFor(snapshotOf(draft.scheme));
-  const set = (fn: (s: Settings) => void) =>
-    setDraft((d) => {
-      const next = structuredClone(d!);
-      fn(next);
-      return next;
-    });
+  // Applied immediately (not as a state updater): callers read input events, which are only valid during the handler.
+  const set = (fn: (s: Settings) => void) => {
+    const next = structuredClone(draft!);
+    fn(next);
+    setDraft(next);
+  };
 
   async function save() {
     const clean = structuredClone(draft!);

@@ -206,6 +206,28 @@ test.describe("first visit (contract)", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Beispiel: Kunden-CRM" })).toBeVisible();
   });
 
+  test("result can be adjusted by a special effect", async ({ page }) => {
+    await skipTours(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Beispiel ansehen" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Beispiel: Kunden-CRM" })).toBeVisible();
+    await page.goto(page.url().replace(/\/[^/]*$/, "/ergebnis"));
+    const availability = page.locator("section").filter({ has: page.getByRole("heading", { name: /^Verfügbarkeit/ }) });
+    // CONTRACT: checkbox "Ergebnis anpassen", then Grund / Neuer Schutzbedarf / Begründung der Anpassung.
+    await availability.getByRole("checkbox", { name: /Ergebnis anpassen/ }).click();
+    await expect(availability.getByRole("checkbox", { name: /Ergebnis anpassen/ })).toBeChecked();
+    await availability.getByRole("combobox", { name: "Grund" }).selectOption("distribution");
+    await expect(availability.getByText(/Es gibt Ersatz/)).toBeVisible();
+    await availability.getByRole("combobox", { name: "Neuer Schutzbedarf" }).selectOption("2");
+    // Changing the level itself is a re-rating and asks for a reason.
+    const dialog = page.getByRole("dialog", { name: "Änderungsgrund dokumentieren" });
+    await dialog.getByRole("textbox", { name: /Änderungsgrund/ }).fill("Zweites Rechenzentrum übernimmt sofort.");
+    await dialog.getByRole("button", { name: "Änderung speichern" }).click();
+    await expect(availability.getByRole("combobox", { name: "Neuer Schutzbedarf" })).toHaveValue("2");
+    await expect(availability.getByText("Hoch", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/Verfügbarkeit: Das angepasste Ergebnis braucht eine Begründung/).first()).toBeVisible();
+  });
+
   test("guided tour on first visit, dismissible and not shown again", async ({ page }) => {
     await page.goto("/");
     // CONTRACT: tour dialog with Weiter / Zurück / Tour beenden.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOG, SCENARIO_COUNT } from "./catalog";
-import { diffVersions, goalLevelChanges } from "./diff";
+import { diffVersions, goalLevelChanges, reclassifications } from "./diff";
 import { goalResult, progress, scenarioLevel, validate } from "./scoring";
 import type { AssessmentVersion, Goal, ScenarioAnswer } from "./types";
 import { catalogFor, DEFAULT_SNAPSHOT, definitionsFor, schemeErrors } from "./scheme";
@@ -157,6 +157,17 @@ describe("scheme", () => {
 });
 
 describe("diff", () => {
+  it("asks for a change reason when the adjusted level changes, not when only the effect changes", () => {
+    const a = complete();
+    a.overrides.A = { level: 2, kind: "cumulation", reason: "" };
+    const kindOnly = structuredClone(a);
+    kindOnly.overrides.A = { level: 2, kind: "distribution", reason: "" };
+    expect(reclassifications(a, kindOnly, null)).toEqual([]);
+    const level = structuredClone(a);
+    level.overrides.A = { level: 3, kind: "cumulation", reason: "" };
+    expect(reclassifications(a, level, null).map((c) => c.path)).toEqual(["override.A"]);
+  });
+
   it("classifies escalations, relaxations, reasoning and context changes", () => {
     const a = complete();
     a.answers.A.financial = yes(2);

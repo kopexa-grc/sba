@@ -204,7 +204,14 @@ export function reclassifications(
     .filter((c) => c.isRating || /^[CIA]\.[a-z]+$/.test(c.path) || c.path.startsWith("override."))
     .filter((c) => !c.path.endsWith(".reason") && c.newValue !== null)
     .map((c) => ({ ...c, oldValue: c.oldValue ?? baseValue(c.path) }))
-    .filter((c) => c.oldValue !== null && c.oldValue !== c.newValue);
+    .filter((c) => c.oldValue !== null && c.oldValue !== c.newValue)
+    // Switching the kind of effect is documentation, not a new rating.
+    .filter((c) => !c.path.startsWith("override.") || overrideLevel(c.oldValue) !== overrideLevel(c.newValue));
+}
+
+/** "Hoch (Kumulationseffekt)" → "Hoch". */
+function overrideLevel(value: string | null): string | null {
+  return value === null ? null : value.replace(/\s*\(.*\)$/, "");
 }
 
 /** Aggregated protection level changes per goal (for the diff header). */
