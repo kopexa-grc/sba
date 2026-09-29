@@ -7,6 +7,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Merges by the Dependabot workflow do not trigger a push run.
+  schedule:
+    - cron: "0 5 3 * *"
 
 permissions:
   contents: write
@@ -24,12 +27,18 @@ jobs:
       - id: release
         uses: googleapis/release-please-action@v5
 
+      - id: pr
+        if: steps.release.outputs.pr
+        run: echo "branch=$(jq -r '.headBranchName // empty' <<<"$PR")" >> "$GITHUB_OUTPUT"
+        env:
+          PR: ${{ steps.release.outputs.pr }}
+
       # publiccode.yml also carries the release date, which release-please does not know.
-      - if: steps.release.outputs.pr
+      - if: steps.pr.outputs.branch
         uses: actions/checkout@v7
         with:
-          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
-      - if: steps.release.outputs.pr
+          ref: ${{ steps.pr.outputs.branch }}
+      - if: steps.pr.outputs.branch
         run: |
           sed -i -E "s/^releaseDate: .*/releaseDate: \"$(date -u +%F)\"/" publiccode.yml
           if ! git diff --quiet; then
@@ -40,9 +49,9 @@ jobs:
           fi
 
       # PRs opened with GITHUB_TOKEN do not start other workflows; run CI on the
-      # release branch explicitly so its required checks exist.
-      - if: steps.release.outputs.pr
+      # release branch explicitly so the release PR shows its checks.
+      - if: steps.pr.outputs.branch
         run: gh workflow run deploy.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"
         env:
-          BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          BRANCH: ${{ steps.pr.outputs.branch }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

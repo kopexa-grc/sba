@@ -1,20 +1,36 @@
 name: Dependabot auto-merge
 
-# Enables auto-merge on Dependabot PRs. GitHub merges them only after the
-# required checks (build, e2e) have passed; failing updates stay open.
-on: pull_request
+# Merges a Dependabot PR once "CI & Deploy" (typecheck, unit, build, e2e) has
+# passed on it. Failing updates stay open for a human.
+on:
+  workflow_run:
+    workflows: ["CI & Deploy"]
+    types: [completed]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  automerge:
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+  merge:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/')
     runs-on: ubuntu-latest
     steps:
-      - uses: dependabot/fetch-metadata@v3
-      - run: gh pr merge --auto --squash "$PR_URL"
+      - name: Merge if the tested commit is still the PR head
+        run: |
+          pr=$(gh pr view "$BRANCH" -R "$GITHUB_REPOSITORY" --json number,headRefOid,author,state \
+            --jq 'select(.state == "OPEN" and (.author.login | test("dependabot"))) | "\(.number) \(.headRefOid)"')
+          read -r number head <<<"$pr"
+          if [ -z "$number" ] || [ "$head" != "$TESTED_SHA" ]; then
+            echo "Nothing to merge (closed, not Dependabot, or newer commits pending)."
+            exit 0
+          fi
+          gh pr merge "$number" -R "$GITHUB_REPOSITORY" --squash --delete-branch
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
