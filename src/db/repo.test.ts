@@ -153,3 +153,32 @@ describe("repo", () => {
     expect(actions).not.toContain("submit");
   });
 });
+
+describe("sample", () => {
+  it("creates a complete example analysis without blocking issues", async () => {
+    const { hasBlockingIssues } = await import("../domain/scoring");
+    const v = await repo.createSample("alice");
+    expect(v.meta.name).toBe("Beispiel: Kunden-CRM");
+    expect(hasBlockingIssues(v)).toBe(false);
+    const { validate } = await import("../domain/scoring");
+    expect(validate(v)).toEqual([]);
+  });
+});
+
+describe("change log", () => {
+  it("merges consecutive text edits of one field into one entry", async () => {
+    const v = await repo.createAsset("alice");
+    for (const text of ["Kunden", "Kundendaten", "Kundendaten und Verträge"]) {
+      await repo.updateDraft(v.id, "alice", (x) => void (x.meta.description = text));
+    }
+    const entries = (await d.audit.where("versionId").equals(v.id).toArray()).filter((a) => a.action === "update");
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ oldValue: null, newValue: "Kundendaten und Verträge" });
+
+    // Another field in between starts a new entry for the next edit.
+    await repo.updateDraft(v.id, "alice", (x) => void (x.meta.owner = "Vertrieb"));
+    await repo.updateDraft(v.id, "alice", (x) => void (x.meta.description = "Nur Kundendaten"));
+    const after = (await d.audit.where("versionId").equals(v.id).toArray()).filter((a) => a.action === "update");
+    expect(after).toHaveLength(3);
+  });
+});

@@ -4,10 +4,12 @@ import { Link, Navigate, NavLink, useLocation, useNavigate, useParams } from "re
 import { useAudit, useVersion, useVersions } from "../app/data";
 import { useSession } from "../app/session";
 import { LevelMark, ResultSummary } from "../components/level";
+import { Tour, WORKSPACE_TOUR } from "../components/Tour";
 import { Button, Meta, Select, cn } from "../components/ui";
 import { allResults, goalResult, validate } from "../domain/scoring";
 import { ASSET_TYPE_LABEL, STATUS_LABEL, type Goal } from "../domain/types";
 import { versionLabel } from "../domain/versioning";
+import { usePageTitle } from "../lib/a11y";
 import { actorName, formatDateTime } from "../lib/format";
 import { CompareStep } from "../workspace/CompareStep";
 import { EditorProvider } from "../workspace/editor";
@@ -41,6 +43,8 @@ export function Workspace() {
   const { hash } = useLocation();
   const { notify } = useSession();
   const step = (rawStep ?? "stammdaten") as Step;
+  const stepLabel = [...WIZARD, ...RECORD].find((s) => s.step === step)?.label;
+  usePageTitle(version ? `${version.meta.name || "Unbenanntes Asset"} – ${stepLabel ?? ""}` : null);
 
   useEffect(() => {
     if (!hash) {
@@ -51,9 +55,8 @@ export function Workspace() {
     return () => clearTimeout(t);
   }, [step, hash]);
 
-  if (version === undefined || versions === undefined || audit === undefined) {
-    return version === undefined && versions !== undefined ? <Navigate to="/" replace /> : null;
-  }
+  if (version === null) return <Navigate to="/" replace />;
+  if (version === undefined || versions === undefined || audit === undefined) return null;
   if (!STEPS.has(step)) return <Navigate to={`/a/${assetId}/v/${versionId}`} replace />;
 
   const basePath = `/a/${version.assetId}/v/${version.id}`;
@@ -134,8 +137,8 @@ export function Workspace() {
       </header>
 
       <div className="mx-auto grid max-w-[1280px] grid-cols-[minmax(0,1fr)] gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[200px_minmax(0,1fr)] lg:py-8 xl:grid-cols-[200px_minmax(0,1fr)_260px]">
-        <nav aria-label="Schritte" className="no-print lg:sticky lg:top-20 lg:self-start">
-          <ol className="-mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
+        <nav aria-label="Schritte" data-tour="steps" className="no-print lg:sticky lg:top-20 lg:self-start">
+          <ol className="relative -mx-4 flex gap-1 overflow-x-auto px-4 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
             {WIZARD.map((s, i) => {
               const isGoal = s.step.length === 1;
               return (
@@ -145,7 +148,14 @@ export function Workspace() {
                     className={({ isActive }) => navItem(isActive || (s.step === "stammdaten" && !rawStep))}
                   >
                     <span className="w-3 text-[12px] text-muted tabular">
-                      {done(s.step) ? <Check className="size-3.5 text-ink" aria-label="erledigt" /> : i + 1}
+                      {done(s.step) ? (
+                        <>
+                          <Check className="size-3.5 text-ink" aria-hidden />
+                          <span className="sr-only">erledigt:</span>
+                        </>
+                      ) : (
+                        i + 1
+                      )}
                     </span>
                     {s.label}
                     {isGoal && (
@@ -170,7 +180,7 @@ export function Workspace() {
         </nav>
 
         <div className="min-w-0">
-          <div className="mb-8 xl:hidden">
+          <div className="mb-8 xl:hidden" data-tour="result">
             <ResultSummary results={results} />
           </div>
           {step === "stammdaten" && <MetaStep />}
@@ -183,14 +193,14 @@ export function Workspace() {
             <div className="no-print mt-10 flex items-center justify-between gap-2 border-t border-line pt-5">
               {wizardIndex > 0 ? (
                 <Button variant="ghost" onClick={() => navigate(`${basePath}/${WIZARD[wizardIndex - 1]!.step}`)}>
-                  Zurück: {WIZARD[wizardIndex - 1]!.label}
+                  Zurück<span className="max-sm:sr-only">: {WIZARD[wizardIndex - 1]!.label}</span>
                 </Button>
               ) : (
                 <span />
               )}
               {wizardIndex < WIZARD.length - 1 && (
                 <Button onClick={() => navigate(`${basePath}/${WIZARD[wizardIndex + 1]!.step}`)}>
-                  Weiter: {WIZARD[wizardIndex + 1]!.label}
+                  Weiter<span className="max-sm:sr-only">: {WIZARD[wizardIndex + 1]!.label}</span>
                 </Button>
               )}
             </div>
@@ -199,7 +209,7 @@ export function Workspace() {
 
         <aside className="no-print hidden xl:block">
           <div className="sticky top-20 grid gap-8">
-            <div>
+            <div data-tour="result">
               <h2 className="mb-1 text-[13px] font-semibold">Schutzbedarf</h2>
               <ResultSummary layout="rows" results={results} />
             </div>
@@ -207,6 +217,7 @@ export function Workspace() {
           </div>
         </aside>
       </div>
+      <Tour id="workspace" steps={WORKSPACE_TOUR.filter((s) => s.target !== "close-version" || version.status === "draft")} />
     </EditorProvider>
   );
 }

@@ -35,8 +35,9 @@ export function useAssetList(): AssetRow[] | undefined {
   });
 }
 
-export function useVersion(versionId: string | undefined) {
-  return useLiveQuery(() => (versionId ? db.versions.get(versionId) : undefined), [versionId]);
+/** undefined while loading, null if the version does not exist. */
+export function useVersion(versionId: string | undefined): AssessmentVersion | null | undefined {
+  return useLiveQuery(async () => (versionId ? ((await db.versions.get(versionId)) ?? null) : null), [versionId]);
 }
 
 export function useVersions(assetId: string | undefined): AssessmentVersion[] | undefined {

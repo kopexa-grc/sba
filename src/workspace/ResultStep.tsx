@@ -15,7 +15,7 @@ export function ResultStep({ basePath }: { basePath: string }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-10">
       <div>
-        <h2 className="text-[20px] font-semibold">Ergebnis &amp; Begründung</h2>
+        <h2 data-focus-heading className="text-[20px] font-semibold focus:outline-none">Ergebnis &amp; Begründung</h2>
         <p className="mt-0.5 text-[14px] text-muted">
           Maximumprinzip je Grundwert. Danach Kumulations-, Verteilungs- und Vererbungseffekte prüfen.
         </p>
@@ -43,7 +43,7 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
     <section className="grid gap-5 border-t border-line pt-8 first-of-type:border-t-0 first-of-type:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h3 className="text-[17px] font-semibold">
-          {GOAL_LABEL[goal]} <span className="font-normal text-muted">({GOAL_EN[goal]})</span>
+          {GOAL_LABEL[goal]} <span lang="en" className="font-normal text-muted">({GOAL_EN[goal]})</span>
         </h3>
         <LevelMark level={r.effective} className="text-[14px] font-medium" />
       </div>
@@ -71,7 +71,7 @@ function GoalPanel({ goal, basePath }: { goal: Goal; basePath: string }) {
             {!r.complete && (
               <>
                 {" "}
-                <Link to={`${basePath}/${goal}`} className="text-primary-700 hover:underline">
+                <Link to={`${basePath}/${goal}`} className="text-primary-700 underline underline-offset-2">
                   {r.total - r.answered} offen
                 </Link>
               </>
@@ -239,7 +239,7 @@ export function IssueList({ issues, basePath, compact }: { issues: Issue[]; base
         </ul>
       )}
       {compact && all.length > shown.length && (
-        <Link to={`${basePath}/ergebnis`} className="mt-1 inline-block text-[12.5px] text-primary-700 hover:underline">
+        <Link to={`${basePath}/ergebnis`} className="mt-1 inline-block text-[12.5px] text-primary-700 underline underline-offset-2">
           Alle {all.length} anzeigen
         </Link>
       )}

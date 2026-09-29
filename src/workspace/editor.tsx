@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSession } from "../app/session";
 import { Button, Dialog, Field, Input, Textarea } from "../components/ui";
 import { repo } from "../db/repo";
@@ -90,7 +90,11 @@ function ReasonDialog({ pending }: { pending: Pending | null }) {
   );
 }
 
-/** Text input that writes on blur, so the audit trail records edits, not keystrokes. */
+/**
+ * Text input that saves after a short typing pause, on blur and when the page
+ * is hidden (tab switch, close). The repository merges consecutive edits of the
+ * same field into one change-log entry.
+ */
 export function CommitInput({
   value,
   onCommit,
@@ -110,9 +114,38 @@ export function CommitInput({
   const { readOnly } = useEditor();
   const [local, setLocal] = useState(value);
   const focused = useRef(false);
+  const latest = useRef({ local, value, onCommit });
+  latest.current = { local, value, onCommit };
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flush = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    const { local: l, value: v, onCommit: commit } = latest.current;
+    if (l !== v) commit(l);
+  }, []);
+
   useEffect(() => {
     if (!focused.current) setLocal(value);
   }, [value]);
+
+  useEffect(() => {
+    const onHide = () => document.visibilityState === "hidden" && flush();
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [flush]);
+
+  const change = (next: string) => {
+    setLocal(next);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 1200);
+  };
+
   const common = {
     ...rest,
     value: local,
@@ -122,12 +155,12 @@ export function CommitInput({
     },
     onBlur: () => {
       focused.current = false;
-      if (local !== value) onCommit(local);
+      flush();
     },
   };
   return multiline ? (
-    <Textarea {...common} rows={rows ?? 3} onChange={(e) => setLocal(e.target.value)} />
+    <Textarea {...common} rows={rows ?? 3} onChange={(e) => change(e.target.value)} />
   ) : (
-    <Input {...common} onChange={(e) => setLocal(e.target.value)} />
+    <Input {...common} onChange={(e) => change(e.target.value)} />
   );
 }

@@ -41,6 +41,11 @@ export function baseName(v: AssessmentVersion): string {
   return `SBA_${slug(v.meta.name)}_v${versionLabel(v)}`;
 }
 
+/** The stored state of a version; names entered just before an export are already applied there. */
+function fresh(v: AssessmentVersion, stored: AssessmentVersion[]): AssessmentVersion {
+  return stored.find((x) => x.id === v.id) ?? v;
+}
+
 export async function exportXlsx(v: AssessmentVersion) {
   const [{ exportVersionXlsx }, records, settings] = await Promise.all([
     import("../io/xlsx/export"),
@@ -48,7 +53,7 @@ export async function exportXlsx(v: AssessmentVersion) {
     repo.getSettings(),
   ]);
   const r = records[0]!;
-  const data = await exportVersionXlsx(v, r.versions, r.audit, settings);
+  const data = await exportVersionXlsx(fresh(v, r.versions), r.versions, r.audit, settings);
   saveBlob(
     `${baseName(v)}.xlsx`,
     new Blob([data as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
@@ -63,7 +68,7 @@ export async function exportOds(v: AssessmentVersion) {
     repo.getSettings(),
   ]);
   const r = records[0]!;
-  const data = await exportVersionOds(v, r.versions, r.audit, settings);
+  const data = await exportVersionOds(fresh(v, r.versions), r.versions, r.audit, settings);
   saveBlob(`${baseName(v)}.ods`, new Blob([data as BlobPart], { type: "application/vnd.oasis.opendocument.spreadsheet" }));
 }
 
@@ -73,7 +78,7 @@ export async function exportPdf(v: AssessmentVersion) {
     repo.versionsOf(v.assetId),
     repo.getSettings(),
   ]);
-  saveBlob(`${baseName(v)}.pdf`, await renderReportPdf(v, history, { settings }));
+  saveBlob(`${baseName(v)}.pdf`, await renderReportPdf(fresh(v, history), history, { settings }));
 }
 
 function today(): string {

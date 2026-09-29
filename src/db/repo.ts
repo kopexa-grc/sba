@@ -1,5 +1,6 @@
 import { diffVersions, reclassifications, type Change } from "../domain/diff";
 import type { AssessmentVersion, Asset, AssetMeta, AuditAction, AuditEntry } from "../domain/types";
+import { applySample } from "../domain/sample";
 import { defaultSettings, snapshotOf, type Settings } from "../domain/scheme";
 import { hasBlockingIssues } from "../domain/scoring";
 import {
@@ -18,6 +19,12 @@ export interface Identity {
   name: string;
   email: string;
 }
+
+/** Consecutive edits of the same text field within this window form one change-log entry. */
+const MERGE_WINDOW_MS = 5 * 60 * 1000;
+
+/** Actor recorded until the user enters a name; replaced by the name afterwards. */
+export const ANONYMOUS_ACTOR = "Ohne Namen";
 
 export function actorLabel(id: Identity): string {
   return id.email ? `${id.name} <${id.email}>` : id.name;
@@ -46,6 +53,20 @@ export class Repo {
 
   async lastBackupAt(): Promise<string | null> {
     return ((await this.d.settings.get("lastBackupAt"))?.value as string | undefined) ?? null;
+  }
+
+  /** Attributes changes made before a name was entered to that name. */
+  async claimAnonymous(actor: string): Promise<void> {
+    await this.d.transaction("rw", this.d.versions, this.d.audit, async () => {
+      await this.d.versions.toCollection().modify((v) => {
+        if (v.createdBy === ANONYMOUS_ACTOR) v.createdBy = actor;
+        if (v.updatedBy === ANONYMOUS_ACTOR) v.updatedBy = actor;
+        if (v.closedBy === ANONYMOUS_ACTOR) v.closedBy = actor;
+      });
+      await this.d.audit.toCollection().modify((a) => {
+        if (a.actor === ANONYMOUS_ACTOR) a.actor = actor;
+      });
+    });
   }
 
   async getSettings(): Promise<Settings> {
@@ -108,6 +129,13 @@ export class Repo {
     return v;
   }
 
+  /** Creates a complete example analysis to explore the app. */
+  async createSample(actor: string): Promise<AssessmentVersion> {
+    const v = await this.createAsset(actor);
+    await this.updateDraft(v.id, actor, applySample);
+    return (await this.d.versions.get(v.id))!;
+  }
+
   async versionsOf(assetId: string): Promise<AssessmentVersion[]> {
     const list = await this.d.versions.where("assetId").equals(assetId).toArray();
     return list.sort(compareVersions);
@@ -145,16 +173,30 @@ export class Repo {
       next.updatedAt = nowIso();
       next.updatedBy = actor;
       await this.d.versions.put(next);
-      await this.d.audit.bulkAdd(
-        changes.map((c) =>
-          this.entry(next, actor, "update", {
-            field: c.label,
-            oldValue: c.oldValue,
-            newValue: c.newValue,
-            reason: reratedPaths.has(c.path) || c.isRating ? (reason ?? null) : null,
-          }),
-        ),
-      );
+      const recent = (await this.d.audit.where("versionId").equals(versionId).toArray()).sort((x, y) => y.at.localeCompare(x.at));
+      for (const c of changes) {
+        const entryReason = reratedPaths.has(c.path) || c.isRating ? (reason ?? null) : null;
+        // Text edits of one field in one editing session become a single entry
+        // (first old value → last new value); ratings are always logged separately.
+        const mergeable = !c.isRating && !reratedPaths.has(c.path) && !entryReason;
+        const last = recent.find((e) => e.field === c.label);
+        // Only merge if nothing else was logged afterwards (entries of the same save share a timestamp).
+        const withinSession =
+          last &&
+          Date.now() - new Date(last.at).getTime() < MERGE_WINDOW_MS &&
+          !recent.some((e) => e.id !== last.id && e.at > last.at);
+        if (mergeable && last && withinSession && last.action === "update" && last.actor === actor && !last.reason) {
+          if (last.oldValue === c.newValue) {
+            await this.d.audit.delete(last.id);
+          } else {
+            await this.d.audit.update(last.id, { newValue: c.newValue, at: nowIso() });
+          }
+          continue;
+        }
+        await this.d.audit.add(
+          this.entry(next, actor, "update", { field: c.label, oldValue: c.oldValue, newValue: c.newValue, reason: entryReason }),
+        );
+      }
       return changes;
     });
   }

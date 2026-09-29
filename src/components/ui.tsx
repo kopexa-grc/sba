@@ -1,7 +1,9 @@
 import { clsx, type ClassValue } from "clsx";
 import { AlertTriangle, CircleAlert, Info } from "lucide-react";
 import {
+  cloneElement,
   forwardRef,
+  isValidElement,
   useEffect,
   useId,
   useRef,
@@ -56,7 +58,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 });
 
 const FIELD =
-  "w-full rounded-md border border-line bg-paper px-2.5 text-[13.5px] text-ink placeholder:text-muted/60 transition-colors duration-100 hover:border-ink/25 focus:border-primary-950 focus:outline-none aria-invalid:border-red-700 disabled:bg-surface disabled:text-muted";
+  "w-full rounded-md border border-line bg-paper px-2.5 text-[13.5px] text-ink placeholder:text-muted/80 transition-colors duration-100 hover:border-ink/25 focus:border-primary-950 focus:outline-none aria-invalid:border-red-700 disabled:bg-surface disabled:text-muted";
 const READ_ONLY = "read-only:border-transparent read-only:bg-surface read-only:hover:border-transparent";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
@@ -97,23 +99,40 @@ export function Field({
   className?: string;
 }) {
   const id = useId();
+  const describedBy = error || hint ? `${id}-desc` : undefined;
+  // Wire hint/error and state to the control, so screen readers announce them.
+  const control = children(id);
+  const wired = isValidElement<Record<string, unknown>>(control)
+    ? cloneElement(control, {
+        "aria-describedby": describedBy,
+        "aria-required": required || undefined,
+        "aria-invalid": error ? true : undefined,
+      })
+    : control;
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <label htmlFor={id} className="text-[13px] font-medium text-ink">
         {label}
         {required && <span className="ml-1.5 font-normal text-muted">(Pflicht)</span>}
       </label>
-      {children(id)}
+      {wired}
       {error ? (
-        <p className="text-[12.5px] text-red-700">{error}</p>
+        <p id={describedBy} className="text-[12.5px] text-red-700">
+          {error}
+        </p>
       ) : hint ? (
-        <p className="text-[12.5px] text-muted">{hint}</p>
+        <p id={describedBy} className="text-[12.5px] text-muted">
+          {hint}
+        </p>
       ) : null}
     </div>
   );
 }
 
-/** Two-or-three option toggle (e.g. Ja / Nein). */
+/**
+ * Two-or-three option toggle (e.g. Ja / Nein), following the WAI-ARIA radio
+ * group pattern: one tab stop, arrow keys move and select.
+ */
 export function Segmented<T extends string | number | boolean>({
   value,
   options,
@@ -127,20 +146,46 @@ export function Segmented<T extends string | number | boolean>({
   disabled?: boolean;
   label: string;
 }) {
+  const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selected = options.findIndex((o) => o.value === value);
+  const focusable = selected >= 0 ? selected : 0;
+
+  function onKeyDown(e: React.KeyboardEvent, index: number) {
+    const keys: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    let next: number | null = null;
+    if (e.key in keys) next = (index + keys[e.key]! + options.length) % options.length;
+    if (e.key === "Home") next = 0;
+    if (e.key === "End") next = options.length - 1;
+    if (next === null) return;
+    e.preventDefault();
+    refs.current[next]?.focus();
+    onChange(options[next]!.value);
+  }
+
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex self-start overflow-hidden rounded-md border border-line">
+    <div
+      role="radiogroup"
+      aria-label={label}
+      aria-disabled={disabled || undefined}
+      className="inline-flex self-start overflow-hidden rounded-md border border-line"
+    >
       {options.map((o, i) => {
         const active = o.value === value;
         return (
           <button
             key={String(o.value)}
+            ref={(el) => {
+              refs.current[i] = el;
+            }}
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={i === focusable ? 0 : -1}
             disabled={disabled}
             onClick={() => onChange(o.value)}
+            onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(
-              "h-8 min-w-16 px-3.5 text-[13.5px] transition-colors duration-100 disabled:cursor-not-allowed",
+              "h-8 min-w-16 px-3.5 text-[13.5px] transition-colors duration-100 focus-visible:relative focus-visible:z-10 disabled:cursor-not-allowed",
               i > 0 && "border-l border-line",
               active ? "bg-primary-950 font-medium text-white" : "bg-paper text-ink hover:bg-surface",
               disabled && !active && "text-muted hover:bg-paper",
@@ -168,6 +213,7 @@ export function Notice({
   return (
     <div className={cn("flex gap-2 text-[13px] leading-snug text-ink", className)}>
       <Icon
+        aria-hidden
         className={cn(
           "mt-[2px] size-3.5 shrink-0",
           tone === "error" ? "text-red-700" : tone === "warning" ? "text-amber-600" : "text-muted",
@@ -196,6 +242,8 @@ export function Dialog({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descId = useId();
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -205,6 +253,8 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
+      aria-describedby={description ? descId : undefined}
       onClose={onClose}
       onCancel={(e) => {
         e.preventDefault();
@@ -218,8 +268,14 @@ export function Dialog({
       {open && (
         <div className="flex max-h-[85vh] flex-col">
           <div className="px-5 pt-5 pb-1">
-            <h2 className="text-[16px] font-semibold">{title}</h2>
-            {description && <div className="mt-1 text-[13px] leading-relaxed text-muted">{description}</div>}
+            <h2 id={titleId} className="text-[16px] font-semibold">
+              {title}
+            </h2>
+            {description && (
+              <div id={descId} className="mt-1 text-[13px] leading-relaxed text-muted">
+                {description}
+              </div>
+            )}
           </div>
           <div className="overflow-y-auto px-5 py-4">{children}</div>
           {footer && <div className="flex flex-wrap justify-end gap-2 px-5 pt-1 pb-5">{footer}</div>}

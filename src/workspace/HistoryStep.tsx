@@ -33,7 +33,7 @@ export function HistoryStep({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-10">
       <div>
-        <h2 className="text-[20px] font-semibold">Historie &amp; Änderungsprotokoll</h2>
+        <h2 data-focus-heading className="text-[20px] font-semibold focus:outline-none">Historie &amp; Änderungsprotokoll</h2>
         <p className="mt-0.5 text-[14px] text-muted">
           Jede Änderung mit Zeitpunkt (UTC), Akteur, altem und neuem Wert sowie Grund. Einträge lassen sich nicht ändern.
         </p>
@@ -106,16 +106,16 @@ function AuditTable({ audit }: { audit: AuditEntry[] }) {
           ))}
         </Select>
       </div>
-      <div className="overflow-x-auto">
+      <div role="region" aria-label="Änderungsprotokoll" tabIndex={0} className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-[13px]">
           <thead className="border-b border-line">
             <tr>
-              <th className={TH}>Zeitpunkt (UTC)</th>
-              <th className={TH}>Version</th>
-              <th className={TH}>Akteur</th>
-              <th className={TH}>Aktion</th>
-              <th className={TH}>Vorher → Nachher</th>
-              <th className={TH}>Grund</th>
+              <th scope="col" className={TH}>Zeitpunkt (UTC)</th>
+              <th scope="col" className={TH}>Version</th>
+              <th scope="col" className={TH}>Akteur</th>
+              <th scope="col" className={TH}>Aktion</th>
+              <th scope="col" className={TH}>Vorher → Nachher</th>
+              <th scope="col" className={TH}>Grund</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">

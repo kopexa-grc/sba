@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { exportAssessment, exportOds, exportPdf, exportXlsx } from "../app/files";
 import { useSession } from "../app/session";
@@ -21,7 +21,12 @@ export function WorkflowActions({
   onBlocked: () => void;
 }) {
   const [pending, setPending] = useState<Pending>(null);
-  const { actor, notify, guard } = useSession();
+  const { actor, notify, guard, requireIdentity } = useSession();
+  /** Reports and closing print the author's name, so ask for it first. */
+  const withName = async (fn: (actor: string) => Promise<unknown>) => {
+    const name = await requireIdentity();
+    if (name) await guard(() => fn(name));
+  };
   const navigate = useNavigate();
   const [summary, setSummary] = useState("");
   const [kind, setKind] = useState<"minor" | "major">("minor");
@@ -34,7 +39,14 @@ export function WorkflowActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {version.status === "draft" && (
-        <Button variant="primary" onClick={() => (hasBlockingIssues(version) ? onBlocked() : setPending("close"))}>
+        <Button
+          variant="primary"
+          data-tour="close-version"
+          onClick={async () => {
+            if (hasBlockingIssues(version)) return onBlocked();
+            if (await requireIdentity()) setPending("close");
+          }}
+        >
           Version abschließen
         </Button>
       )}
@@ -52,9 +64,9 @@ export function WorkflowActions({
       <Menu
         label="Export"
         items={[
-          { label: "PDF-Bericht", onSelect: () => guard(() => exportPdf(version)) },
-          { label: "Prüfbericht für Excel (.xlsx)", onSelect: () => guard(() => exportXlsx(version)) },
-          { label: "Prüfbericht für LibreOffice / openDesk (.ods)", onSelect: () => guard(() => exportOds(version)) },
+          { label: "PDF-Bericht", onSelect: () => withName(() => exportPdf(version)) },
+          { label: "Prüfbericht für Excel (.xlsx)", onSelect: () => withName(() => exportXlsx(version)) },
+          { label: "Prüfbericht für LibreOffice / openDesk (.ods)", onSelect: () => withName(() => exportOds(version)) },
           { label: "Analyse als Datei (.sba)", onSelect: () => guard(() => exportAssessment(version, actor)) },
           ...(version.status === "draft" && version.parentVersionId
             ? [{ label: "Version verwerfen …", onSelect: () => setPending("discard"), danger: true }]
@@ -74,7 +86,9 @@ export function WorkflowActions({
             <Button
               variant="primary"
               onClick={async () => {
-                const ok = await guard(() => repo.close(version.id, actor));
+                const name = await requireIdentity();
+                if (!name) return;
+                const ok = await guard(() => repo.close(version.id, name));
                 if (!ok) return;
                 close();
                 notify(`Version ${version.major}.${version.minor} abgeschlossen.`);
@@ -191,41 +205,83 @@ interface MenuItem {
   danger?: boolean;
 }
 
+/** Menu button following the WAI-ARIA menu pattern (arrow keys, Home/End, Escape, Tab). */
 function Menu({ label, items }: { label: string; items: MenuItem[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const menuId = useId();
+
   useEffect(() => {
     if (!open) return;
+    itemRefs.current[0]?.focus();
     const onDown = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
+
+  function close(returnFocus: boolean) {
+    setOpen(false);
+    if (returnFocus) button.current?.focus();
+  }
+
+  function onMenuKey(e: React.KeyboardEvent) {
+    const current = itemRefs.current.findIndex((el) => el === document.activeElement);
+    const move = (i: number) => itemRefs.current[(i + items.length) % items.length]?.focus();
+    if (e.key === "ArrowDown") move(current + 1);
+    else if (e.key === "ArrowUp") move(current - 1);
+    else if (e.key === "Home") move(0);
+    else if (e.key === "End") move(items.length - 1);
+    else if (e.key === "Escape") close(true);
+    else if (e.key === "Tab") return close(false);
+    else return;
+    e.preventDefault();
+  }
+
   return (
-    <div ref={ref} className="relative">
-      <Button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+    <div ref={ref} className="relative" data-tour="export">
+      <Button
+        ref={button}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
         {label}
-        <ChevronDown className="size-3.5" />
+        <ChevronDown className="size-3.5" aria-hidden />
       </Button>
       {open && (
-        <div role="menu" className="absolute right-0 z-40 mt-1 w-64 rounded-md border border-line bg-paper py-1 shadow-[0_8px_24px_-8px_rgb(16_38_62/0.22)]">
+        <div
+          id={menuId}
+          role="menu"
+          aria-label={label}
+          onKeyDown={onMenuKey}
+          className="absolute right-0 z-40 mt-1 w-72 rounded-md border border-line bg-paper py-1 shadow-[0_8px_24px_-8px_rgb(16_38_62/0.22)]"
+        >
           {items.map((it, i) => (
             <button
               key={it.label}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
               role="menuitem"
               type="button"
+              tabIndex={-1}
               onClick={() => {
-                setOpen(false);
+                close(true);
                 it.onSelect();
               }}
               className={cn(
-                "flex w-full px-3 py-1.5 text-left text-[13.5px] hover:bg-surface",
+                "flex w-full px-3 py-1.5 text-left text-[13.5px] hover:bg-surface focus-visible:bg-surface focus-visible:outline-offset-[-2px]",
                 it.danger && "text-red-700",
                 it.danger && !items[i - 1]?.danger && "mt-1 border-t border-line pt-2",
               )}

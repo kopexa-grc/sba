@@ -6,6 +6,7 @@ import { useAssetList, type AssetRow } from "../app/data";
 import { exportBackup, pickFile } from "../app/files";
 import { useSession } from "../app/session";
 import { ImportBundleDialog } from "../components/ImportBundle";
+import { OVERVIEW_TOUR, Tour } from "../components/Tour";
 import { ImportXlsxDialog } from "../components/ImportXlsx";
 import { StatusText } from "../components/StatusBadge";
 import { TriadMarks } from "../components/level";
@@ -15,9 +16,12 @@ import { allResults, progress } from "../domain/scoring";
 import { ASSET_TYPE_LABEL, STATUS_LABEL, type AssetType, type VersionStatus } from "../domain/types";
 import { versionLabel } from "../domain/versioning";
 import { BundleError, FILE_ACCEPT, readBundleFile, type ParsedBundle } from "../io/json";
+import { usePageTitle } from "../lib/a11y";
 import { actorName, formatDate } from "../lib/format";
 
 export function Dashboard() {
+  usePageTitle("Analysen");
+  const navigate = useNavigate();
   const rows = useAssetList();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<VersionStatus | "all">("all");
@@ -47,6 +51,11 @@ export function Dashboard() {
     }
   }
 
+  async function createSample() {
+    const v = await guard(() => repo.createSample(actor));
+    if (v) navigate(`/a/${v.assetId}/v/${v.id}/ergebnis`);
+  }
+
   if (rows === undefined) return null;
   const backupDue =
     rows.length > 0 &&
@@ -63,13 +72,13 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setXlsxOpen(true)}>
+          <Button data-tour="import" onClick={() => setXlsxOpen(true)}>
             Bogen importieren
           </Button>
           <Button onClick={openBundle}>
             Datei einlesen
           </Button>
-          <Button variant="primary" onClick={() => setCreating(true)}>
+          <Button data-tour="new-analysis" variant="primary" onClick={() => setCreating(true)}>
             Neue Analyse
           </Button>
         </div>
@@ -79,7 +88,7 @@ export function Dashboard() {
         <Notice tone="warning" className="mt-6">
           {lastBackup ? `Letzte Sicherung am ${formatDate(lastBackup)}.` : "Noch keine Sicherung."} Ihre Analysen liegen nur in
           diesem Browser.{" "}
-          <button type="button" className="text-primary-700 hover:underline" onClick={() => guard(() => exportBackup(actor))}>
+          <button type="button" className="text-primary-700 underline underline-offset-2" onClick={() => guard(() => exportBackup(actor))}>
             Jetzt sichern
           </button>
         </Notice>
@@ -93,6 +102,9 @@ export function Dashboard() {
               <>
                 <Button variant="primary" onClick={() => setCreating(true)}>
                   Analyse anlegen
+                </Button>
+                <Button data-tour="sample" onClick={createSample}>
+                  Beispiel ansehen
                 </Button>
                 <Button onClick={() => setXlsxOpen(true)}>
                   Erhebungsbogen übernehmen
@@ -146,6 +158,7 @@ export function Dashboard() {
         </>
       )}
 
+      <Tour id="overview" steps={rows.length === 0 ? OVERVIEW_TOUR : OVERVIEW_TOUR.filter((s) => s.target !== "sample")} />
       <NewAssetDialog open={creating} onClose={() => setCreating(false)} />
       <ImportXlsxDialog open={xlsxOpen} onClose={() => setXlsxOpen(false)} />
       <ImportBundleDialog bundle={bundle} onClose={() => setBundle(null)} />
@@ -156,15 +169,15 @@ export function Dashboard() {
 function AssetTable({ rows }: { rows: AssetRow[] }) {
   const th = "px-3 py-2 text-left text-[12.5px] font-normal text-muted first:pl-2";
   return (
-    <div className="mt-4 overflow-x-auto">
+    <div role="region" aria-label="Analysen" tabIndex={0} className="mt-4 overflow-x-auto">
       <table className="w-full min-w-[720px] text-[13.5px]">
         <thead className="border-b border-line">
           <tr>
-            <th className={th}>Asset</th>
-            <th className={th}>Schutzbedarf</th>
-            <th className={th}>Version</th>
-            <th className={cn(th, "text-right")}>Bewertet</th>
-            <th className={th}>Geändert</th>
+            <th scope="col" className={th}>Asset</th>
+            <th scope="col" className={th}>Schutzbedarf</th>
+            <th scope="col" className={th}>Version</th>
+            <th scope="col" className={cn(th, "text-right")}>Bewertet</th>
+            <th scope="col" className={th}>Geändert</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-line">

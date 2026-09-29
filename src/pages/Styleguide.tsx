@@ -4,6 +4,7 @@ import { StatusText } from "../components/StatusBadge";
 import { Button, Empty, Field, Input, Meta, Notice, Segmented, Select, Textarea, cn } from "../components/ui";
 import type { GoalResult } from "../domain/scoring";
 import type { Goal } from "../domain/types";
+import { usePageTitle } from "../lib/a11y";
 
 const PRIMARY = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 
@@ -29,7 +30,7 @@ function DoDont({ good, bad, why }: { good: ReactNode; bad: ReactNode; why: stri
       </div>
       <div>
         <div className="mb-2 text-[12.5px] text-muted">Nicht so – {why}</div>
-        <div className="rounded-lg border border-line p-4 opacity-70">{bad}</div>
+        <div className="rounded-lg border border-line p-4">{bad}</div>
       </div>
     </div>
   );
@@ -51,6 +52,7 @@ function sample(levels: Record<Goal, 1 | 2 | 3 | null>, complete = true): Record
 
 /** Living reference for docs/STYLEGUIDE.md. */
 export function Styleguide() {
+  usePageTitle("Styleguide");
   const [yes, setYes] = useState<boolean | null>(true);
   const [picked, setPicked] = useState<1 | 2 | 3>(2);
   return (

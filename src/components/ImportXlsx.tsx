@@ -200,7 +200,7 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
           {GOALS.map((g) => (
             <div key={g}>
               <h3 className="mb-1 text-[14px] font-semibold">{GOAL_LABEL[g]}</h3>
-              <div className="overflow-x-auto border-y border-line">
+              <div role="region" aria-label={`Zuordnung ${GOAL_LABEL[g]}`} tabIndex={0} className="overflow-x-auto border-y border-line">
                 <table className="w-full min-w-[620px] text-[12.5px]">
                   <tbody className="divide-y divide-line">
                     {CATALOG[g].scenarios.map((s) => {

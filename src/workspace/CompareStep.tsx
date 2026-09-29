@@ -30,7 +30,7 @@ export function CompareStep({ versions, current }: { versions: AssessmentVersion
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <div>
-        <h2 className="text-[20px] font-semibold">Versionsvergleich</h2>
+        <h2 data-focus-heading className="text-[20px] font-semibold focus:outline-none">Versionsvergleich</h2>
         <p className="mt-0.5 text-[14px] text-muted">
           Neue Werte in <span className="text-red-700">Rot</span> sind verschärft, in <span className="text-emerald-700">Grün</span>{" "}
           herabgestuft oder neu begründet, in <span className="text-amber-700">Gelb</span> geänderte Stammdaten.
@@ -85,13 +85,13 @@ function DiffView({ a, b }: { a: AssessmentVersion; b: AssessmentVersion }) {
       {changes.length === 0 ? (
         <p className="text-[14px] text-muted">Die Versionen sind inhaltlich identisch.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div role="region" aria-label="Änderungen zwischen den Versionen" tabIndex={0} className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-[13px]">
             <thead className="border-b border-line">
               <tr>
-                <th className={cn(TH, "w-[32%]")}>Feld</th>
-                <th className={TH}>Vorher</th>
-                <th className={TH}>Nachher</th>
+                <th scope="col" className={cn(TH, "w-[32%]")}>Feld</th>
+                <th scope="col" className={TH}>Vorher</th>
+                <th scope="col" className={TH}>Nachher</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">

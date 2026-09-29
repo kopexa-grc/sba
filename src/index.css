@@ -25,10 +25,14 @@
   --color-surface: oklch(0.972 0.004 250);
   --color-paper: #ffffff;
 
-  /* Traffic light for protection levels (brief: emerald-500 / amber-500 / red-500). */
-  --color-lvl-1: #10b981;
-  --color-lvl-2: #f59e0b;
-  --color-lvl-3: #ef4444;
+  /*
+   * Traffic light for protection levels. The brief's colors (#10B981 / #F59E0B / #EF4444)
+   * stay in the exports; on screen the next darker shades are used so the level bars
+   * reach the 3:1 non-text contrast of WCAG 1.4.11 against white.
+   */
+  --color-lvl-1: #059669;
+  --color-lvl-2: #d97706;
+  --color-lvl-3: #dc2626;
   --color-lvl-open: oklch(0.86 0.01 250);
 
   --radius-sm: 4px;

@@ -22,8 +22,8 @@ export function GoalStep({ goal }: { goal: Goal }) {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
         <div>
-          <h2 className="text-[20px] font-semibold">
-            {GOAL_LABEL[goal]} <span className="font-normal text-muted">({GOAL_EN[goal]})</span>
+          <h2 data-focus-heading className="text-[20px] font-semibold focus:outline-none">
+            {GOAL_LABEL[goal]} <span lang="en" className="font-normal text-muted">({GOAL_EN[goal]})</span>
           </h2>
           <p className="mt-0.5 text-[14px] text-muted">{GOAL_QUESTION[goal]}</p>
         </div>
@@ -97,7 +97,7 @@ function ScenarioCard({ goal, def, index, isDriver }: { goal: Goal; def: Scenari
       </div>
 
       {answer.applies && (
-        <fieldset className="mt-4">
+        <fieldset className="mt-4 min-w-0">
           <legend className="mb-2 text-[13px] text-muted">{def.followUp}</legend>
           <div className="grid gap-1.5">
             {def.options.map((o) => {

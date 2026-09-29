@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router";
 import { LevelMark } from "../components/level";
+import { resetTours } from "../components/Tour";
+import { Button } from "../components/ui";
+import { usePageTitle } from "../lib/a11y";
 import { CATALOG, SCENARIO_SHORT } from "../domain/catalog";
 
 const SECTIONS = [
@@ -24,6 +28,8 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 export function Help() {
+  usePageTitle("Handbuch");
+  const navigate = useNavigate();
   return (
     <div className="mx-auto grid max-w-[1100px] gap-8 px-4 py-8 sm:px-6 md:grid-cols-[200px_minmax(0,1fr)]">
       <nav aria-label="Inhalt" className="md:sticky md:top-20 md:self-start">
@@ -46,6 +52,15 @@ export function Help() {
             eines Assets verletzt werden? Diese Frage beantwortet die Schutzbedarfsanalyse – als Grundlage jedes ISMS nach
             BSI IT-Grundschutz (Standard 200-2) und ISO/IEC 27001.
           </p>
+          <Button
+            className="mt-4"
+            onClick={() => {
+              resetTours();
+              navigate("/");
+            }}
+          >
+            Einführung erneut ansehen
+          </Button>
         </header>
 
         <Section id="methode" title="Methode">

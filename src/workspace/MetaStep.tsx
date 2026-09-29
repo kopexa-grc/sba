@@ -42,7 +42,7 @@ export function MetaStep() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <div>
-        <h2 className="text-[20px] font-semibold">Asset &amp; Scope</h2>
+        <h2 data-focus-heading className="text-[20px] font-semibold focus:outline-none">Asset &amp; Scope</h2>
         <p className="mt-0.5 text-[14px] text-muted">
           Was wird untersucht, wer verantwortet es und wo verläuft die Grenze der Betrachtung?
         </p>

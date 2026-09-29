@@ -21,11 +21,12 @@ import {
 } from "../domain/scheme";
 import { GOALS, GOAL_EN, GOAL_LABEL } from "../domain/types";
 import { BundleError, FILE_ACCEPT, readBundleFile, SCHEMA_VERSION, type ParsedBundle } from "../io/json";
+import { usePageTitle } from "../lib/a11y";
 import { formatDate } from "../lib/format";
 
 function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
   return (
-    <section className="grid gap-4 border-t border-line pt-8 md:grid-cols-[220px_minmax(0,1fr)] md:gap-8">
+    <section className="grid grid-cols-[minmax(0,1fr)] gap-4 border-t border-line pt-8 md:grid-cols-[220px_minmax(0,1fr)] md:gap-8">
       <div>
         <h2 className="text-[15px] font-semibold">{title}</h2>
         {description && <p className="mt-1 text-[13px] text-muted">{description}</p>}
@@ -87,6 +88,7 @@ function NumberField({
 }
 
 export function SettingsPage() {
+  usePageTitle("Einstellungen");
   const stored = useSettings();
   const { identity, editIdentity, actor, notify, guard } = useSession();
   const [draft, setDraft] = useState<Settings | null>(null);
@@ -251,6 +253,7 @@ export function SettingsPage() {
         <div>
           <Button
             variant="ghost"
+            className="h-auto min-h-8 py-1.5 text-left whitespace-normal"
             onClick={() =>
               set((s) => {
                 s.scheme = { ...s.scheme, ...DEFAULT_SCHEME, revision: s.scheme.revision, updatedAt: s.scheme.updatedAt };
@@ -267,7 +270,7 @@ export function SettingsPage() {
         {GOALS.map((g) => (
           <div key={g} className="grid gap-3">
             <h3 className="text-[14px] font-semibold">
-              {GOAL_LABEL[g]} <span className="font-normal text-muted">({GOAL_EN[g]})</span>
+              {GOAL_LABEL[g]} <span lang="en" className="font-normal text-muted">({GOAL_EN[g]})</span>
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
               {([2, 3] as const).map((l) => (
@@ -290,7 +293,11 @@ export function SettingsPage() {
           </div>
         ))}
         <div>
-          <Button variant="ghost" onClick={() => set((s) => void (s.measures = structuredClone(DEFAULT_MEASURES)))}>
+          <Button
+            variant="ghost"
+            className="h-auto min-h-8 py-1.5 text-left whitespace-normal"
+            onClick={() => set((s) => void (s.measures = structuredClone(DEFAULT_MEASURES)))}
+          >
             Standardmaßnahmen wiederherstellen
           </Button>
         </div>
@@ -370,7 +377,7 @@ export function SettingsPage() {
         </div>
         <p className="text-[13px] text-muted">
           Methodik nach BSI-Standard 200-2 und ISO/IEC 27001 ·{" "}
-          <Link to="/styleguide" className="text-primary-700 hover:underline">
+          <Link to="/styleguide" className="text-primary-700 underline underline-offset-2">
             Styleguide
           </Link>
         </p>

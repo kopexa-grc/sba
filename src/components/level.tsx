@@ -53,8 +53,14 @@ export function TriadMarks({ results }: { results: Record<Goal, GoalResult> }) {
             className="inline-flex items-center gap-1.5"
             title={`${GOAL_LABEL[g]}: ${r.effective ? LEVEL_LABEL[r.effective] : "offen"}${r.complete ? "" : " (unvollständig)"}`}
           >
-            <span className="text-[12px] font-medium text-muted">{GOAL_SHORT[g]}</span>
+            <span className="text-[12px] font-medium text-muted" aria-hidden>
+              {GOAL_SHORT[g]}
+            </span>
             <LevelBars level={r.effective} />
+            <span className="sr-only">
+              {GOAL_LABEL[g]}: {r.effective ? LEVEL_LABEL[r.effective] : "offen"}
+              {r.complete ? "" : " (unvollständig)"}
+            </span>
           </span>
         );
       })}
@@ -71,11 +77,11 @@ export function ResultSummary({ results, layout = "columns" }: { results: Record
           const r = results[g];
           const note = r.override ? "übersteuert" : r.complete ? "vollständig" : `${r.answered} von ${r.total} bewertet`;
           return layout === "columns" ? (
-            <div key={g} className={cn("min-w-0 py-1", i === 0 ? "pr-3" : "px-3")}>
+            <div key={g} className={cn("min-w-0 py-1", i === 0 ? "pr-2 sm:pr-3" : "px-2 sm:px-3")}>
               <dt className="truncate text-[12.5px] text-muted">{GOAL_LABEL[g]}</dt>
               <dd className="mt-1.5 flex items-center gap-2">
                 <LevelBars level={r.effective} />
-                <span className={cn("font-display text-[15px] leading-none font-semibold whitespace-nowrap sm:text-[19px]", !r.effective && "text-muted")}>
+                <span className={cn("font-display text-[14px] leading-none font-semibold whitespace-nowrap min-[360px]:text-[15px] sm:text-[19px]", !r.effective && "text-muted")}>
                   {r.effective ? LEVEL_LABEL[r.effective] : "offen"}
                 </span>
               </dd>
