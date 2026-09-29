@@ -1,25 +1,18 @@
-# publiccode.yml – standardized description of public-sector relevant software
-# Standard: https://yml.publiccode.tools (version 0.4)
-publiccodeYmlVersion: "0.4"
-
+publiccodeYmlVersion: '0.4'
 name: Kopexa Schutzbedarfsanalyse
-url: "https://github.com/kopexa-grc/sba"
-landingURL: "https://kopexa-grc.github.io/sba/"
-softwareVersion: "1.0.0"
-releaseDate: "2026-09-29"
+url: https://github.com/kopexa-grc/sba
+landingURL: https://kopexa-grc.github.io/sba/
+softwareVersion: 1.1.0
+releaseDate: '2026-09-29'
 logo: public/favicon.svg
-
 platforms:
   - web
-
 categories:
   - compliance-management
   - it-security
   - it-asset-management
-
 developmentStatus: stable
-softwareType: "standalone/web"
-
+softwareType: standalone/web
 intendedAudience:
   countries:
     - de
@@ -30,30 +23,31 @@ intendedAudience:
     - defence
     - healthcare
     - finance-and-economic-development
-
 description:
   de:
     localisedName: Kopexa Schutzbedarfsanalyse
     shortDescription: >-
-      Schutzbedarfsanalyse nach BSI-Standard 200-2 und ISO/IEC 27001 im Browser –
-      offline, ohne Konto, barrierefrei, mit Export als PDF, Excel und ODS.
+      Schutzbedarfsanalyse nach BSI-Standard 200-2 und ISO/IEC 27001 im Browser
+      – offline, ohne Konto, barrierefrei, mit Export als PDF, Excel und ODS.
     longDescription: >
-      Die Kopexa Schutzbedarfsanalyse führt Sicherheitsverantwortliche Schritt für
-      Schritt durch die Schutzbedarfsfeststellung für Vertraulichkeit, Integrität und
-      Verfügbarkeit nach der Methodik des BSI-Standards 200-2. Sie ersetzt fehleranfällige
-      Excel-Bögen durch einen geführten Fragebogen mit Maximumprinzip, begründeten
-      Sondereffekten (Kumulation, Verteilung, Vererbung), Plausibilitätsprüfung,
-      Versionierung und feldgenauem Änderungsprotokoll.
+      Die Kopexa Schutzbedarfsanalyse führt Sicherheitsverantwortliche Schritt
+      für Schritt durch die Schutzbedarfsfeststellung für Vertraulichkeit,
+      Integrität und Verfügbarkeit nach der Methodik des BSI-Standards 200-2.
+      Sie ersetzt fehleranfällige Excel-Bögen durch einen geführten Fragebogen
+      mit Maximumprinzip, begründeten Sondereffekten (Kumulation, Verteilung,
+      Vererbung), Plausibilitätsprüfung, Versionierung und feldgenauem
+      Änderungsprotokoll.
 
 
-      Alle Daten bleiben ausschließlich im Browser (IndexedDB); es werden keine Inhalte an
-      Server übertragen. Die Anwendung ist eine installierbare Progressive Web App, läuft
-      vollständig offline und ist nach WCAG 2.2 AA geprüft. Berichte entstehen als PDF, als
-      Excel-Datei (XLSX) und als OpenDocument-Tabelle (ODS) für LibreOffice, Collabora und
-      openDesk. Bestehende Erhebungsbögen sowie Asset-Listen aus CSV, XLSX und ODS lassen
-      sich importieren; Schwellenwerte des Bewertungsschemas sind je Organisation
-      konfigurierbar.
-    documentation: "https://kopexa-grc.github.io/sba/hilfe"
+      Alle Daten bleiben ausschließlich im Browser (IndexedDB); es werden keine
+      Inhalte an Server übertragen. Die Anwendung ist eine installierbare
+      Progressive Web App, läuft vollständig offline und ist nach WCAG 2.2 AA
+      geprüft. Berichte entstehen als PDF, als Excel-Datei (XLSX) und als
+      OpenDocument-Tabelle (ODS) für LibreOffice, Collabora und openDesk.
+      Bestehende Erhebungsbögen sowie Asset-Listen aus CSV, XLSX und ODS lassen
+      sich importieren; Schwellenwerte des Bewertungsschemas sind je
+      Organisation konfigurierbar.
+    documentation: https://kopexa-grc.github.io/sba/hilfe
     features:
       - Geführte Schutzbedarfsfeststellung nach BSI-Standard 200-2
       - Maximumprinzip und begründete Übersteuerung
@@ -62,18 +56,15 @@ description:
       - Berichte als PDF, XLSX und ODS (OpenDocument)
       - Import von Erhebungsbögen und Asset-Listen (CSV, XLSX, ODS)
       - Offline-fähig, Daten nur im Browser, barrierefrei (WCAG 2.2 AA)
-
 legal:
   license: Apache-2.0
   mainCopyrightOwner: Kopexa GmbH
   repoOwner: Kopexa GmbH
-
 maintenance:
   type: internal
   contacts:
     - name: Kopexa GmbH
       email: hello@kopexa.com
-
 localisation:
   localisationReady: false
   availableLanguages:
