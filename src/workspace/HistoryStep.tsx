@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { FingerprintText } from "../components/Fingerprint";
 import { StatusText } from "../components/StatusBadge";
 import { TriadMarks } from "../components/level";
 import { Input, Select, cn } from "../components/ui";
@@ -60,7 +61,7 @@ export function HistoryStep({
                     {v.closedAt && <span>· abgeschlossen {formatDateTime(v.closedAt)}, {actorName(v.closedBy ?? "")}</span>}
                   </span>
                   <span className="mt-0.5 block text-[12.5px] text-muted">
-                    Bewertungsschema: {v.scheme.name} (Stand {v.scheme.revision})
+                    Bewertungsschema: {v.scheme.name} (Stand {v.scheme.revision}) · <FingerprintText version={v} />
                   </span>
                 </span>
                 <TriadMarks results={allResults(v)} />

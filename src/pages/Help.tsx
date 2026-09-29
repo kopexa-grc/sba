@@ -189,6 +189,11 @@ export function Help() {
             Einstufung höher- oder herabgestuft – auch gegenüber der vorherigen Version –, fragt die App nach dem Grund. Der
             Versionsvergleich zeigt Verschärfungen rot, Herabstufungen und neue Begründungen grün, Stammdaten gelb.
           </p>
+          <p>
+            Jede Version hat eine Prüfsumme (SHA-256 über ihren Inhalt). Sie steht im Fuß jeder Berichtsseite und in der
+            Historie. So lässt sich erkennen, ob ausgedruckte Seiten zur selben Version gehören und ob ein Bericht zu dem Stand
+            passt, der in der App gespeichert ist.
+          </p>
           <p className="text-muted">
             Die App ist für die eigenständige Analyse gedacht. Eine formelle Freigabe durch eine zweite Person findet außerhalb
             statt, etwa per Unterschrift auf dem PDF-Bericht oder in der Kopexa-Plattform.

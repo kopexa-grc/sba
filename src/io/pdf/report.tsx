@@ -5,6 +5,7 @@ Font.registerHyphenationCallback((word) => [word]);
 import type { ReactNode } from "react";
 import { CATALOG, SCENARIO_SHORT, type GoalDef } from "../../domain/catalog";
 import { META_LABEL } from "../../domain/diff";
+import { fingerprint, groupedFingerprint, shortFingerprint } from "../../domain/fingerprint";
 import { nextSteps } from "../../domain/next-steps";
 import { catalogFor, DEFAULT_MEASURES, describeScheme, type MeasureCatalog, type Settings } from "../../domain/scheme";
 import { goalResult, scenarioLevel, validate, type Rated } from "../../domain/scoring";
@@ -38,6 +39,8 @@ interface ReportContext {
   orgName: string;
   /** PNG/JPEG data URL; other formats are not supported by the PDF renderer. */
   logo: string | null;
+  /** SHA-256 over the version content (hex), printed on every page. */
+  fingerprint: string;
   /** Consultancy that prepared the report, if set in the settings. */
   preparedBy: { name: string; logo: string | null } | null;
   generatedAt: Date;
@@ -296,7 +299,7 @@ function Frame({ ctx, children }: { ctx: ReportContext; children: ReactNode }) {
         </View>
         <Text
           render={({ pageNumber, totalPages }) =>
-            `Seite ${pageNumber} von ${totalPages} · erstellt am ${fmtDate(ctx.generatedAt.toISOString())}`
+            `${ctx.fingerprint ? `Prüfsumme ${shortFingerprint(ctx.fingerprint)} · ` : ""}Seite ${pageNumber} von ${totalPages} · erstellt am ${fmtDate(ctx.generatedAt.toISOString())}`
           }
         />
       </View>
@@ -550,6 +553,11 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
           {version.meta.name || "Unbenanntes Asset"}“, Version {versionLabel(version)}, vollständig ist und die Einstufungen
           nachvollziehbar begründet sind.
         </Text>
+        {ctx.fingerprint && (
+          <Text style={s.small}>
+            Prüfsumme dieser Version: <Text style={s.mono}>{groupedFingerprint(ctx.fingerprint)}</Text>
+          </Text>
+        )}
         <View style={s.signoffSummary}>
           {GOALS.map((g) => {
             const r = goalResult(version, g);
@@ -617,6 +625,22 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
           Versions-ID <Text style={s.mono}>{version.id}</Text>
         </Text>
 
+        {ctx.fingerprint && (
+          <>
+            <Text style={s.h2} minPresenceAhead={40}>
+              Prüfsumme
+            </Text>
+            <Text style={s.para}>
+              Jede Seite trägt die Kurzform der Prüfsumme. Sie wird als SHA-256 über den Inhalt dieser Version berechnet;
+              Seiten einer anderen Version oder eines anderen Dokuments zeigen einen anderen Wert. Zum Prüfen die Analyse in
+              der Schutzbedarfsanalyse öffnen: Die Historie zeigt dieselbe Prüfsumme je Version.
+            </Text>
+            <Text style={s.small}>
+              <Text style={s.mono}>{groupedFingerprint(ctx.fingerprint)}</Text>
+            </Text>
+          </>
+        )}
+
         <Text style={s.h2} minPresenceAhead={40}>
           Hinweise
         </Text>
@@ -639,15 +663,19 @@ export function ReportDocument({
   history,
   settings,
   generatedAt,
+  fingerprint: fp = "",
 }: {
   version: AssessmentVersion;
   history: AssessmentVersion[];
   settings?: Settings;
   generatedAt: Date;
+  /** From fingerprint(version) of the unsanitized version, so it matches the app. */
+  fingerprint?: string;
 }) {
   const ctx: ReportContext = {
     version,
     history,
+    fingerprint: fp,
     catalog: catalogFor(version.scheme),
     measures: settings?.measures ?? DEFAULT_MEASURES,
     orgName: settings?.organization.name.trim() || "Kopexa",
@@ -675,7 +703,9 @@ export function ReportDocument({
   );
 }
 
-function documentFor(version: AssessmentVersion, history: AssessmentVersion[], opts: ReportOptions = {}) {
+async function documentFor(version: AssessmentVersion, history: AssessmentVersion[], opts: ReportOptions = {}) {
+  // Computed on the stored version (before text sanitizing) so it matches the value in the app.
+  const fp = await fingerprint(version);
   const settings = opts.settings
     ? {
         ...sanitize(opts.settings),
@@ -691,16 +721,17 @@ function documentFor(version: AssessmentVersion, history: AssessmentVersion[], o
       history={sanitize(history)}
       settings={settings}
       generatedAt={opts.generatedAt ?? new Date()}
+      fingerprint={fp}
     />
   );
 }
 
-export function renderReportPdf(
+export async function renderReportPdf(
   version: AssessmentVersion,
   history: AssessmentVersion[],
   opts?: ReportOptions,
 ): Promise<Blob> {
-  return pdf(documentFor(version, history, opts)).toBlob();
+  return pdf(await documentFor(version, history, opts)).toBlob();
 }
 
 /** Node-only helper used by tests and scripts. */
@@ -710,5 +741,5 @@ export async function renderReportBuffer(
   opts?: ReportOptions,
 ): Promise<Uint8Array> {
   const { renderToBuffer } = await import("@react-pdf/renderer");
-  return renderToBuffer(documentFor(version, history, opts));
+  return renderToBuffer(await documentFor(version, history, opts));
 }

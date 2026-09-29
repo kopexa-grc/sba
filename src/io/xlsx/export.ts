@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { fingerprint } from "../../domain/fingerprint";
 import { SCENARIO_TITLE, type GoalDef } from "../../domain/catalog";
 import { catalogFor, definitionsFor, describeScheme, type Settings } from "../../domain/scheme";
 import { goalResult } from "../../domain/scoring";
@@ -112,7 +113,8 @@ function buildCover(
   v: AssessmentVersion,
   history: AssessmentVersion[],
   catalog: Record<Goal, GoalDef>,
-  settings?: Settings,
+  settings: Settings | undefined,
+  fp: string,
 ) {
   const ws = wb.addWorksheet(SHEET.cover, {
     pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
@@ -275,6 +277,7 @@ function buildCover(
     [EXTRA_LABEL.scheme, describeScheme(v.scheme)],
     [EXTRA_LABEL.organization, settings?.organization.name ?? ""],
     [EXTRA_LABEL.preparedBy, settings?.preparedBy?.name ?? ""],
+    [EXTRA_LABEL.fingerprint, fp],
   ];
   for (const [text, val] of entries) {
     row++;
@@ -585,7 +588,7 @@ export async function exportVersionXlsx(
   wb.calcProperties.fullCalcOnLoad = true;
 
   const catalog = catalogFor(version.scheme);
-  buildCover(wb, version, history, catalog, settings);
+  buildCover(wb, version, history, catalog, settings, await fingerprint(version));
   addLogo(wb, settings);
   buildAssessment(wb, version, catalog);
   buildAudit(wb, audit);

@@ -52,6 +52,7 @@ export const EXTRA_LABEL = {
   scheme: "Bewertungsschema",
   organization: "Organisation",
   preparedBy: "Erstellt durch",
+  fingerprint: "Prüfsumme (SHA-256)",
 } as const;
 
 /** Row (per goal) below each questionnaire block that carries a manual override. */

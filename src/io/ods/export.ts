@@ -1,3 +1,4 @@
+import { fingerprint } from "../../domain/fingerprint";
 import { SCENARIO_TITLE, type GoalDef } from "../../domain/catalog";
 import { catalogFor, definitionsFor, describeScheme, type Settings } from "../../domain/scheme";
 import { goalResult } from "../../domain/scoring";
@@ -102,7 +103,13 @@ function legacyGoalResult(v: AssessmentVersion, goal: Goal, catalog: Record<Goal
   return evaluateGoal(goal, sum);
 }
 
-function buildCover(v: AssessmentVersion, history: AssessmentVersion[], catalog: Record<Goal, GoalDef>, settings?: Settings) {
+function buildCover(
+  v: AssessmentVersion,
+  history: AssessmentVersion[],
+  catalog: Record<Goal, GoalDef>,
+  settings: Settings | undefined,
+  fp: string,
+) {
   const ws = new OdsSheet(SHEET.cover);
   for (const [col, w] of Object.entries({ A: 5, B: 4, C: 24.7, D: 6, E: 23.3, F: 4, G: 4, H: 30.5, I: 40.7 })) ws.width(col, w);
   for (const m of LEGACY_COVER_MERGES) ws.merge(m);
@@ -210,6 +217,7 @@ function buildCover(v: AssessmentVersion, history: AssessmentVersion[], catalog:
     [EXTRA_LABEL.scheme, describeScheme(v.scheme)],
     [EXTRA_LABEL.organization, settings?.organization.name ?? ""],
     [EXTRA_LABEL.preparedBy, settings?.preparedBy?.name ?? ""],
+    [EXTRA_LABEL.fingerprint, fp],
   ];
   for (const [text, val] of entries) {
     row++;
@@ -414,7 +422,7 @@ export async function exportVersionOds(
   settings?: Settings,
 ): Promise<Uint8Array> {
   const catalog = catalogFor(version.scheme);
-  const cover = buildCover(version, history, catalog, settings);
+  const cover = buildCover(version, history, catalog, settings, await fingerprint(version));
   const pictures: { path: string; data: Uint8Array; mime: string }[] = [];
   const logo = decodeLogo(settings?.organization.logo);
   if (logo) {
