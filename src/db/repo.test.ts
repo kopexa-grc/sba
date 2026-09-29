@@ -100,15 +100,21 @@ describe("repo", () => {
   it("round-trips settings and analyses through one backup file", async () => {
     const v = await readyDraft();
     await repo.close(v.id, "alice");
-    const settings = await repo.saveSettings({ ...(await repo.getSettings()), organization: { name: "ACME GmbH", logo: null } });
+    // A tiny PNG as data URL, as produced by the logo upload.
+    const logo =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const settings = await repo.saveSettings({ ...(await repo.getSettings()), organization: { name: "ACME GmbH", logo } });
     const bundle = buildBundle({ settings, assets: await repo.exportRecords() });
     expect(bundle.kind).toBe("backup");
     const parsed = await parseBundle(JSON.stringify(bundle));
     expect(parsed.settings?.organization.name).toBe("ACME GmbH");
+    expect(parsed.settings?.organization.logo).toBe(logo);
 
     const other = new Repo(new SbaDatabase(`test-${crypto.randomUUID()}`));
     expect(await other.importRecords(parsed.records)).toMatchObject({ assets: 1, versions: 1 });
     expect(await other.importRecords(parsed.records)).toMatchObject({ assets: 0, versions: 0, skipped: 1 });
+    await other.saveSettings(parsed.settings!);
+    expect((await other.getSettings()).organization.logo).toBe(logo);
   });
 
   it("migrates files from the former approval workflow", async () => {
