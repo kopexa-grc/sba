@@ -5,7 +5,7 @@ publiccodeYmlVersion: "0.4"
 name: Kopexa Schutzbedarfsanalyse
 url: "https://github.com/kopexa-grc/sba"
 landingURL: "https://kopexa-grc.github.io/sba/"
-softwareVersion: "1.0.0"
+softwareVersion: "1.0.0" # x-release-please-version
 releaseDate: "2026-09-29"
 logo: public/favicon.svg
 

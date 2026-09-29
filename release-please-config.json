@@ -9,9 +9,8 @@
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         {
-          "type": "yaml",
-          "path": "publiccode.yml",
-          "jsonpath": "$.softwareVersion"
+          "type": "generic",
+          "path": "publiccode.yml"
         }
       ],
       "changelog-sections": [
