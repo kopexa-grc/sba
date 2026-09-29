@@ -15,6 +15,7 @@ export function FileMenu() {
         <MenubarTrigger>Datei</MenubarTrigger>
         <MenubarContent>
           <MenubarItem onSelect={f.newAnalysis}>Neue Analyse …</MenubarItem>
+          <MenubarItem onSelect={f.captureAssets}>Assets erfassen (Liste, CSV, Excel) …</MenubarItem>
           <MenubarItem onSelect={f.openFile} aria-keyshortcuts={keys("O")}>
             Datei öffnen …<Shortcut>{mod}O</Shortcut>
           </MenubarItem>

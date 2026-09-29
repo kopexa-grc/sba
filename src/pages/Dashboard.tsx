@@ -57,6 +57,7 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button onClick={files.captureAssets}>Assets erfassen</Button>
           <Button data-tour="new-analysis" variant="primary" onClick={files.newAnalysis}>
             Neue Analyse
           </Button>

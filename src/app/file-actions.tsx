@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { AssetCaptureDialog } from "../components/AssetCapture";
 import { ImportBundleDialog } from "../components/ImportBundle";
 import { ImportXlsxDialog } from "../components/ImportXlsx";
 import { NewAssetDialog } from "../components/NewAssetDialog";
@@ -13,6 +14,8 @@ interface FileActions {
   current: AssessmentVersion | null;
   setCurrent: (v: AssessmentVersion | null) => void;
   newAnalysis: () => void;
+  /** Several analyses at once: typed, pasted or imported from CSV/Excel/ODS. */
+  captureAssets: () => void;
   openFile: () => Promise<void>;
   importSheet: () => void;
   saveCurrent: () => Promise<void>;
@@ -49,6 +52,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
   const { actor, notify, guard, requireIdentity } = useSession();
   const [current, setCurrent] = useState<AssessmentVersion | null>(null);
   const [creating, setCreating] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [bundle, setBundle] = useState<ParsedBundle | null>(null);
 
@@ -120,6 +124,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
       current,
       setCurrent,
       newAnalysis: () => setCreating(true),
+      captureAssets: () => setCapturing(true),
       openFile,
       importSheet: () => setSheetOpen(true),
       saveCurrent,
@@ -134,6 +139,7 @@ export function FileActionsProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={value}>
       {children}
       <NewAssetDialog open={creating} onClose={() => setCreating(false)} />
+      <AssetCaptureDialog open={capturing} onClose={() => setCapturing(false)} />
       <ImportXlsxDialog open={sheetOpen} onClose={() => setSheetOpen(false)} />
       <ImportBundleDialog bundle={bundle} onClose={() => setBundle(null)} />
     </Ctx.Provider>

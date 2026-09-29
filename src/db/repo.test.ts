@@ -182,3 +182,14 @@ describe("change log", () => {
     expect(after).toHaveLength(3);
   });
 });
+
+describe("bulk capture", () => {
+  it("creates many analyses and notes the source", async () => {
+    const created = await repo.createAssets("alice", [{ name: "CRM", type: "application" }, { name: "Serverraum", type: "room" }], "assets.csv");
+    expect(created).toHaveLength(2);
+    expect((await repo.assetNames()).sort()).toEqual(["CRM", "Serverraum"]);
+    const log = await d.audit.where("assetId").equals(created[1]!.assetId).toArray();
+    expect(log.map((a) => a.action).sort()).toEqual(["create", "import"]);
+    expect(log.find((a) => a.action === "import")?.newValue).toBe("assets.csv");
+  });
+});

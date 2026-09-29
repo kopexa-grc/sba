@@ -1,0 +1,7 @@
+Asset-Name;Kategorie;Verantwortlich;Standort;Personenbezogene Daten
+Kunden-CRM;SaaS;Vertrieb;Cloud (EU);ja
+Mailserver;Server;IT-Betrieb;RZ Frankfurt;ja
+Lohnabrechnung;Prozess;Personalabteilung;Berlin;ja
+"Serverraum ""Nord""";Raum;Facility Management;Gebäude A;nein
+;Anwendung;IT;;
+Kunden-CRM;SaaS;Vertrieb;;ja

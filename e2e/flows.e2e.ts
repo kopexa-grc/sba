@@ -85,6 +85,44 @@ test.describe("core flows", () => {
     expect([bytes[0], bytes[1]]).toEqual([0x1f, 0x8b]);
   });
 
+  test("capture assets: paste a list", async ({ page }) => {
+    await openApp(page);
+    await fileMenuSelect(page, /Assets erfassen/);
+    const dialog = openDialog(page);
+    const first = dialog.getByRole("textbox", { name: "Bezeichnung, Zeile 1" });
+    await first.focus();
+    await page.evaluate(() => {
+      const data = new DataTransfer();
+      data.setData("text/plain", "Firewall\tInfrastruktur\tIT\nWebshop\tAnwendung\tE-Commerce\n");
+      document.activeElement?.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+    });
+    await expect(dialog.getByRole("textbox", { name: "Bezeichnung, Zeile 2" })).toHaveValue("Webshop");
+    await dialog.getByRole("button", { name: "2 Analysen anlegen" }).click();
+    await expect(page.getByRole("link", { name: "Firewall" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Webshop" })).toBeVisible();
+  });
+
+  test("capture assets: CSV import with column mapping", async ({ page }) => {
+    await openApp(page);
+    await fileMenuSelect(page, /Assets erfassen/);
+    const dialog = openDialog(page);
+    await dialog.getByRole("tab", { name: "Aus Datei importieren" }).click();
+    await dialog.locator('input[type="file"]').setInputFiles(FIXTURES + "assets.csv");
+    // Suggested mapping from the German headers.
+    await expect(dialog.getByRole("combobox", { name: /^Asset-Bezeichnung/ })).toHaveValue("0");
+    await expect(dialog.getByRole("combobox", { name: /^Asset-Owner/ })).toHaveValue("2");
+    await expect(dialog.getByRole("combobox", { name: /^Standort/ })).toHaveValue("3");
+    // Type values mapped by content ("SaaS" → Anwendung).
+    await expect(dialog.getByRole("combobox", { name: "„SaaS“" })).toHaveValue("application");
+    await dialog.getByRole("button", { name: "Weiter zur Vorschau" }).click();
+    await expect(dialog).toContainText("4 neu");
+    await expect(dialog).toContainText("Doppelt in der Datei");
+    await expect(dialog).toContainText("Fehlerhaft");
+    await dialog.getByRole("button", { name: "4 Analysen anlegen" }).click();
+    await expect(page.getByRole("link", { name: 'Serverraum "Nord"' })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Lohnabrechnung" })).toBeVisible();
+  });
+
   test("custom rating scheme flows into new analyses", async ({ page }) => {
     await page.goto("/einstellungen");
     await page.getByRole("spinbutton", { name: /Finanzieller Schaden „Hoch“ ab/ }).fill("250000");

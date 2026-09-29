@@ -129,6 +129,24 @@ export class Repo {
     return v;
   }
 
+  /** Creates one draft analysis per entry; `source` (e.g. a file name) is noted in each change log. */
+  async createAssets(actor: string, metas: Partial<AssetMeta>[], source?: string): Promise<AssessmentVersion[]> {
+    const created: AssessmentVersion[] = [];
+    for (const meta of metas) {
+      const v = await this.createAsset(actor, meta);
+      if (source) await this.logImport(v, actor, source);
+      created.push(v);
+    }
+    return created;
+  }
+
+  /** Names of all assets (latest version), for duplicate checks. */
+  async assetNames(): Promise<string[]> {
+    const assets = await this.d.assets.toArray();
+    const versions = await this.d.versions.bulkGet(assets.map((a) => a.latestVersionId));
+    return versions.filter((v): v is AssessmentVersion => !!v).map((v) => v.meta.name);
+  }
+
   /** Creates a complete example analysis to explore the app. */
   async createSample(actor: string): Promise<AssessmentVersion> {
     const v = await this.createAsset(actor);
