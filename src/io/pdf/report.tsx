@@ -1,4 +1,5 @@
-import { Document, Font, Image, Page, StyleSheet, Text, View, pdf } from "@react-pdf/renderer";
+import { Document, Font, Image, Page, Path, StyleSheet, Svg, Text, View, pdf } from "@react-pdf/renderer";
+import QRCode from "qrcode";
 
 // Never hyphenate: e-mail addresses and technical identifiers must stay intact.
 Font.registerHyphenationCallback((word) => [word]);
@@ -642,13 +643,41 @@ function ClosingSection({ ctx }: { ctx: ReportContext }) {
         <Text style={s.h2} minPresenceAhead={40}>
           Hinweise
         </Text>
-        <Text style={s.muted}>
-          Erstellt mit der Kopexa Schutzbedarfsanalyse (schutzbedarf.kopexa.com), einem kostenlosen Hilfsmittel ohne Gewähr. Sie
-          ersetzt keine Rechts-, Datenschutz- oder Auditberatung; Einstufung, Begründung und abgeleitete Maßnahmen verantwortet
-          die anwendende Organisation.
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "flex-start" }} wrap={false}>
+          <Text style={[s.muted, { flex: 1, marginRight: 16 }]}>
+            Erstellt mit der Kopexa Schutzbedarfsanalyse (schutzbedarf.kopexa.com), einem kostenlosen Hilfsmittel ohne Gewähr.
+            Sie ersetzt keine Rechts-, Datenschutz- oder Auditberatung; Einstufung, Begründung und abgeleitete Maßnahmen
+            verantwortet die anwendende Organisation.
+          </Text>
+          <View style={{ alignItems: "center" }}>
+            <QrCode value={KOPEXA_QR_URL} size={52} />
+            <Text style={[s.small, { marginTop: 3 }]}>kopexa.com</Text>
+          </View>
+        </View>
       </View>
     </>
+  );
+}
+
+/** kopexa.com with a campaign tag, so visits from printed reports can be counted. */
+const KOPEXA_QR_URL = "https://kopexa.com/?utm_source=sba&utm_medium=pdf";
+
+/** QR code as one vector path (crisp in print, no raster image). */
+function QrCode({ value, size }: { value: string; size: number }) {
+  const qr = QRCode.create(value, { errorCorrectionLevel: "M" });
+  const n = qr.modules.size;
+  const quiet = 2;
+  let d = "";
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      if (qr.modules.get(y, x)) d += `M${x + quiet} ${y + quiet}h1v1h-1z`;
+    }
+  }
+  const box = n + 2 * quiet;
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${box} ${box}`}>
+      <Path d={d} fill={INK} />
+    </Svg>
   );
 }
 
