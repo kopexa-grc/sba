@@ -3,7 +3,7 @@
 Progressive Web App für die Schutzbedarfsfeststellung nach **BSI IT-Grundschutz 200-2** und **ISO/IEC 27001** –
 Nachfolger des Excel-Bogens `FS_Schutzbedarfsanalyse_neu.xlsx`.
 
-**Live:** https://schutzbedarf.kopexa.com
+**Live:** https://kopexa-grc.github.io/sba/ (später https://schutzbedarf.kopexa.com)
 
 - Geführter Wizard: Asset & Scope → Vertraulichkeit → Integrität → Verfügbarkeit → Ergebnis
 - Maximumprinzip live, Sondereffekte (Kumulation, Verteilung, Vererbung) als begründete Übersteuerung
@@ -46,5 +46,12 @@ pnpm build      # dist/ inkl. Service Worker und 404.html (SPA-Fallback für Git
 
 ## Deployment
 
-Push auf `main` → GitHub Actions (Typecheck, Tests, Build) → GitHub Pages. Custom Domain über `public/CNAME`
-(`schutzbedarf.kopexa.com`); DNS: `CNAME schutzbedarf → kopexa-grc.github.io`.
+Push auf `main` → GitHub Actions (Typecheck, Tests, Build) → GitHub Pages. Gesteuert über Repo-Variablen:
+
+| Variable | Heute | Mit eigener Domain |
+| --- | --- | --- |
+| `PAGES_BASE_PATH` | `/sba/` | leer lassen oder `/` |
+| `PAGES_CNAME` | nicht gesetzt | `schutzbedarf.kopexa.com` |
+
+Umstellen auf die Domain: in Cloudflare `CNAME schutzbedarf → kopexa-grc.github.io` (DNS only) anlegen, die beiden
+Variablen setzen, in den Pages-Settings die Custom Domain eintragen und den Workflow neu laufen lassen.
