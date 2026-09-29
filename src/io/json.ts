@@ -131,6 +131,7 @@ const bundleV2 = z.object({
   kind: z.enum(["settings", "assessments", "backup"]),
   exportedAt: z.string(),
   exportedBy: z.string().optional(),
+  appVersion: z.string().optional(),
   settings: settingsSchema.optional(),
   assets: z.array(z.object({ asset: assetSchema, versions: z.array(versionV2), audit: z.array(auditV2) })).optional(),
 });
@@ -154,6 +155,8 @@ export interface Bundle {
   kind: BundleKind;
   exportedAt: string;
   exportedBy?: string;
+  /** App release that wrote the file (informational; compatibility is decided by schemaVersion). */
+  appVersion?: string;
   settings?: Settings;
   assets?: BundleRecord[];
 }
@@ -165,6 +168,7 @@ export function buildBundle(content: { settings?: Settings; assets?: BundleRecor
     app: "kopexa-sba",
     kind,
     exportedAt: new Date().toISOString(),
+    appVersion: __APP_VERSION__,
     ...(exportedBy ? { exportedBy } : {}),
     ...content,
   };

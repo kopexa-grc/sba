@@ -147,6 +147,9 @@ export function Layout() {
             <a className="underline-offset-2 hover:text-ink hover:underline" href="https://github.com/kopexa-grc/sba">
               Quellcode auf GitHub (Apache-2.0)
             </a>
+            <a className="underline-offset-2 hover:text-ink hover:underline" href={`https://github.com/kopexa-grc/sba/releases/tag/v${__APP_VERSION__}`}>
+              Version {__APP_VERSION__}
+            </a>
           </nav>
         </div>
       </footer>

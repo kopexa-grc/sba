@@ -2,12 +2,16 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 import { VitePWA } from "vite-plugin-pwa";
+import { readFileSync } from "node:fs";
 
 // Served at the domain root by default; BASE_PATH=/sba/ for https://kopexa-grc.github.io/sba/.
 const base = process.env.BASE_PATH || "/";
+// Released version, bumped by release-please.
+const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string };
 
 export default defineConfig({
   base,
+  define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [
     react(),
     tailwindcss(),
