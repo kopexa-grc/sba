@@ -11,7 +11,7 @@ const KIND_LABEL = {
   backup: "Vollständige Sicherung",
 } as const;
 
-/** Preview and selective import of any .sba.json file (settings, analyses or both). */
+/** Preview and selective import of any .sba file (settings, analyses or both). */
 export function ImportBundleDialog({ bundle, onClose }: { bundle: ParsedBundle | null; onClose: () => void }) {
   const { notify, guard } = useSession();
   const [takeSettings, setTakeSettings] = useState(true);

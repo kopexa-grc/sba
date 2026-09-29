@@ -12,10 +12,11 @@ Nachfolger des Excel-Bogens `FS_Schutzbedarfsanalyse_neu.xlsx`.
   Änderungsgrund, visueller Versionsvergleich
 - Konfigurierbares Bewertungsschema (Euro-Schwellen, tolerierbare Ausfallzeiten) – jede Version speichert ihren
   Schema-Stand; Organisation mit Logo; eigene Maßnahmenvorschläge
-- XLSX-Import des Legacy-Bogens (inkl. Zeilenzuordnung und Auflösung von „Eingabe prüfen!“-Widersprüchen)
-- XLSX-Prüfbericht (Deckblatt, Anwendung mit Originalformeln, Änderungsprotokoll, Definitionen), PDF-Bericht mit
+- Import des Legacy-Bogens als XLSX oder ODS (inkl. Zeilenzuordnung und Auflösung von „Eingabe prüfen!“-Widersprüchen)
+- Prüfbericht als XLSX oder ODS (OpenDocument für LibreOffice/Collabora/openDesk; Deckblatt, Anwendung mit Originalformeln, Änderungsprotokoll, Definitionen), PDF-Bericht mit
   Unterschriftenfeldern zum Ausdrucken
-- Ein Dateiformat (`.sba.json`, schema-versioniert) für Sicherung, geteilte Einstellungen und einzelne Analysen;
+- Ein Dateiformat (`.sba` = gzip-komprimiertes JSON, schema-versioniert) für Sicherung, geteilte Einstellungen und
+  einzelne Analysen; Versionen sind vollständige Stände, die Kompression beseitigt die Redundanz (~85 % kleiner);
   ältere Dateien werden beim Einlesen migriert
 - Offline-first: alle Daten in IndexedDB, keine Serverkommunikation, installierbar
 

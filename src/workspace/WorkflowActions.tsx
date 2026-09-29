@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { exportAssessment, exportPdf, exportXlsx } from "../app/files";
+import { exportAssessment, exportOds, exportPdf, exportXlsx } from "../app/files";
 import { useSession } from "../app/session";
 import { Button, Dialog, Field, Segmented, Textarea, cn } from "../components/ui";
 import { repo } from "../db/repo";
@@ -53,8 +53,9 @@ export function WorkflowActions({
         label="Export"
         items={[
           { label: "PDF-Bericht", onSelect: () => guard(() => exportPdf(version)) },
-          { label: "Excel-Prüfbericht", onSelect: () => guard(() => exportXlsx(version)) },
-          { label: "Analyse als Datei (.sba.json)", onSelect: () => guard(() => exportAssessment(version, actor)) },
+          { label: "Prüfbericht für Excel (.xlsx)", onSelect: () => guard(() => exportXlsx(version)) },
+          { label: "Prüfbericht für LibreOffice / openDesk (.ods)", onSelect: () => guard(() => exportOds(version)) },
+          { label: "Analyse als Datei (.sba)", onSelect: () => guard(() => exportAssessment(version, actor)) },
           ...(version.status === "draft" && version.parentVersionId
             ? [{ label: "Version verwerfen …", onSelect: () => setPending("discard"), danger: true }]
             : []),

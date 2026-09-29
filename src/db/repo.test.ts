@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { CATALOG } from "../domain/catalog";
 import type { Goal } from "../domain/types";
 import { WorkflowError } from "../domain/versioning";
-import { buildBundle, parseBundle } from "../io/json";
+import { buildBundle, encodeBundle, parseBundle, readBundleFile } from "../io/json";
 import { SbaDatabase } from "./db";
 import { Repo } from "./repo";
 
@@ -106,7 +106,12 @@ describe("repo", () => {
     const settings = await repo.saveSettings({ ...(await repo.getSettings()), organization: { name: "ACME GmbH", logo } });
     const bundle = buildBundle({ settings, assets: await repo.exportRecords() });
     expect(bundle.kind).toBe("backup");
-    const parsed = await parseBundle(JSON.stringify(bundle));
+    const file = await encodeBundle(bundle);
+    expect([file[0], file[1]]).toEqual([0x1f, 0x8b]);
+    expect(file.length).toBeLessThan(JSON.stringify(bundle).length);
+    const parsed = await readBundleFile(file);
+    // Plain JSON from older exports is still accepted.
+    expect((await readBundleFile(new TextEncoder().encode(JSON.stringify(bundle)))).records).toHaveLength(1);
     expect(parsed.settings?.organization.name).toBe("ACME GmbH");
     expect(parsed.settings?.organization.logo).toBe(logo);
 

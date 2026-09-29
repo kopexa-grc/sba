@@ -193,19 +193,20 @@ export function Help() {
         <Section id="daten" title="Import, Export & Datenschutz">
           <ul className="grid gap-1.5 pl-5 [list-style:disc]">
             <li>
-              <strong>Excel-Import:</strong> FS_Schutzbedarfsanalyse.xlsx wird anhand der Zellkoordinaten und der Fragetexte
+              <strong>Import:</strong> FS_Schutzbedarfsanalyse als Excel (.xlsx) oder OpenDocument (.ods) wird anhand der Zellkoordinaten und der Fragetexte
               erkannt. Abweichende Dateiversionen ordnen Sie in der Vorschau zeilenweise zu; widersprüchliche Ja/Nein-Angaben
               („Eingabe prüfen!“) lösen Sie dort auf.
             </li>
             <li>
-              <strong>Excel-Export:</strong> Deckblatt, Anwendung (Originalstruktur mit Formeln und Ampel),
-              Änderungsprotokoll und Definitionen – für Auditoren ohne Zugriff auf die App.
+              <strong>Prüfbericht als Tabelle:</strong> für Excel (.xlsx) oder für LibreOffice, Collabora und openDesk (.ods, ISO/IEC
+              26300). Deckblatt, Anwendung (Originalstruktur mit Formeln und Ampel), Änderungsprotokoll und Definitionen – für
+              Auditoren ohne Zugriff auf die App.
             </li>
             <li>
               <strong>PDF-Bericht:</strong> Management Summary, Begründungen, Maßnahmen und Unterschriftenfelder zum Ausdrucken.
             </li>
             <li>
-              <strong>Dateien (.sba.json):</strong> ein Format für alles – vollständige Sicherung, geteilte Einstellungen
+              <strong>Dateien (.sba):</strong> ein komprimiertes Format für alles – vollständige Sicherung, geteilte Einstellungen
               oder einzelne Analysen. Beim Einlesen wählen Sie, was übernommen wird. Ältere Dateien werden automatisch
               umgewandelt.
             </li>

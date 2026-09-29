@@ -1,7 +1,7 @@
 import { repo } from "../db/repo";
 import type { AssessmentVersion } from "../domain/types";
 import { versionLabel } from "../domain/versioning";
-import { buildBundle, FILE_SUFFIX } from "../io/json";
+import { buildBundle, encodeBundle, FILE_SUFFIX, type Bundle } from "../io/json";
 
 export function saveBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -55,6 +55,18 @@ export async function exportXlsx(v: AssessmentVersion) {
   );
 }
 
+/** OpenDocument spreadsheet for LibreOffice, Collabora and openDesk. */
+export async function exportOds(v: AssessmentVersion) {
+  const [{ exportVersionOds }, records, settings] = await Promise.all([
+    import("../io/ods/export"),
+    repo.exportRecords([v.assetId]),
+    repo.getSettings(),
+  ]);
+  const r = records[0]!;
+  const data = await exportVersionOds(v, r.versions, r.audit, settings);
+  saveBlob(`${baseName(v)}.ods`, new Blob([data as BlobPart], { type: "application/vnd.oasis.opendocument.spreadsheet" }));
+}
+
 export async function exportPdf(v: AssessmentVersion) {
   const [{ renderReportPdf }, history, settings] = await Promise.all([
     import("../io/pdf/report"),
@@ -68,23 +80,24 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function saveJson(name: string, bundle: unknown) {
-  saveBlob(`${name}${FILE_SUFFIX}`, new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }));
+async function saveJson(name: string, bundle: Bundle) {
+  // octet-stream keeps browsers from transparently unpacking the gzip payload.
+  saveBlob(`${name}${FILE_SUFFIX}`, new Blob([(await encodeBundle(bundle)) as BlobPart], { type: "application/octet-stream" }));
 }
 
 /** Settings only (scheme, organization, measures) – to share with colleagues. */
 export async function exportSettings(exportedBy: string) {
-  saveJson(`SBA_Einstellungen_${today()}`, buildBundle({ settings: await repo.getSettings() }, exportedBy));
+  await saveJson(`SBA_Einstellungen_${today()}`, buildBundle({ settings: await repo.getSettings() }, exportedBy));
 }
 
 /** Settings plus every analysis with all versions and the change log. */
 export async function exportBackup(exportedBy: string) {
   const [settings, assets] = await Promise.all([repo.getSettings(), repo.exportRecords()]);
-  saveJson(`SBA_Sicherung_${today()}`, buildBundle({ settings, assets }, exportedBy));
+  await saveJson(`SBA_Sicherung_${today()}`, buildBundle({ settings, assets }, exportedBy));
   await repo.markBackup();
 }
 
 /** One analysis with all versions and its change log. */
 export async function exportAssessment(v: AssessmentVersion, exportedBy: string) {
-  saveJson(baseName(v), buildBundle({ assets: await repo.exportRecords([v.assetId]) }, exportedBy));
+  await saveJson(baseName(v), buildBundle({ assets: await repo.exportRecords([v.assetId]) }, exportedBy));
 }

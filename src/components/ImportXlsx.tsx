@@ -37,8 +37,8 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
   async function load(file: File) {
     setBusy(true);
     const res = await guard(async () => {
-      const { parseLegacyXlsx } = await import("../io/xlsx/import");
-      return parseLegacyXlsx(await file.arrayBuffer());
+      const { parseLegacySpreadsheet } = await import("../io/ods/import");
+      return parseLegacySpreadsheet(await file.arrayBuffer());
     });
     setBusy(false);
     if (!res) return;
@@ -47,7 +47,7 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
     setReview({
       fileName: file.name,
       data: res,
-      name: res.meta.name ?? file.name.replace(/\.xlsx$/i, ""),
+      name: res.meta.name ?? file.name.replace(/\.(xlsx|ods)$/i, ""),
       answers: structuredClone(res.answers),
       rows: Object.fromEntries(res.rows.map((r) => [`${r.goal}.${r.scenario}`, r.row])),
       conflicts,
@@ -103,7 +103,7 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
     });
     if (!v) return;
     close();
-    notify("Excel-Bogen übernommen. Bitte prüfen Sie die Angaben und reichen Sie die Analyse anschließend ein.");
+    notify("Bogen übernommen. Prüfen Sie die Angaben und schließen Sie die Version ab, wenn alles stimmt.");
     navigate(`/a/${v.assetId}/v/${v.id}/ergebnis`);
   }
 
@@ -122,12 +122,12 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
       open={open}
       onClose={close}
       wide={!!review}
-      title={review ? "Excel-Bogen prüfen und übernehmen" : "Bestehenden Excel-Bogen übernehmen"}
+      title={review ? "Bogen prüfen und übernehmen" : "Bestehenden Erhebungsbogen übernehmen"}
       description={
         review ? (
           <>{review.fileName}: Zuordnung prüfen, Widersprüche auflösen, dann als Entwurf anlegen.</>
         ) : (
-          "FS_Schutzbedarfsanalyse.xlsx oder ein Excel-Prüfbericht aus dieser App. Die Datei wird nur in diesem Browser gelesen."
+          "FS_Schutzbedarfsanalyse als Excel (.xlsx) oder OpenDocument (.ods), auch Prüfberichte aus dieser App. Die Datei wird nur in diesem Browser gelesen."
         )
       }
       footer={
@@ -164,7 +164,7 @@ export function ImportXlsxDialog({ open, onClose }: { open: boolean; onClose: ()
             </span>
             <input
               type="file"
-              accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              accept=".xlsx,.ods,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.spreadsheet"
               className="sr-only"
               disabled={busy}
               onChange={(e) => {

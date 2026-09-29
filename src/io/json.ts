@@ -3,14 +3,16 @@ import { DEFAULT_SNAPSHOT, type Settings } from "../domain/scheme";
 import type { AssessmentVersion, Asset, AuditAction, AuditEntry } from "../domain/types";
 
 /**
- * One file format for everything (`.sba.json`):
+ * One file format for everything (`.sba`, gzip-compressed JSON; plain `.sba.json` is read as well):
  * - kind "settings":    organization, rating scheme and measures – to share with colleagues
  * - kind "assessments": one or more analyses with all versions and the change log
  * - kind "backup":      settings plus all analyses
  * Files of schema 1.x (before the approval workflow was removed) are migrated on import.
  */
 export const SCHEMA_VERSION = "2.0.0";
-export const FILE_SUFFIX = ".sba.json";
+export const FILE_SUFFIX = ".sba";
+/** File picker filter: compressed files and plain JSON from older exports. */
+export const FILE_ACCEPT = ".sba,.json,application/json";
 
 export type BundleKind = "settings" | "assessments" | "backup";
 
@@ -239,6 +241,29 @@ export async function parseBundle(text: string): Promise<ParsedBundle> {
     records: (r.data.assets as BundleRecord[] | undefined) ?? [],
     migratedFrom: null,
   };
+}
+
+async function pipe(data: Uint8Array, transform: CompressionStream | DecompressionStream): Promise<Uint8Array> {
+  const stream = new Blob([data as BlobPart]).stream().pipeThrough(transform);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+/** Serializes a bundle as gzip-compressed JSON. Versions are complete snapshots; gzip removes their redundancy. */
+export async function encodeBundle(bundle: Bundle): Promise<Uint8Array> {
+  return pipe(new TextEncoder().encode(JSON.stringify(bundle)), new CompressionStream("gzip"));
+}
+
+/** Reads a compressed `.sba` file or plain JSON and parses it. */
+export async function readBundleFile(data: ArrayBuffer | Uint8Array): Promise<ParsedBundle> {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  const gzip = bytes[0] === 0x1f && bytes[1] === 0x8b;
+  let text: string;
+  try {
+    text = new TextDecoder().decode(gzip ? await pipe(bytes, new DecompressionStream("gzip")) : bytes);
+  } catch {
+    throw new BundleError("Die Datei ist beschädigt und lässt sich nicht entpacken.");
+  }
+  return parseBundle(text);
 }
 
 function formatError(error: z.ZodError): BundleError {

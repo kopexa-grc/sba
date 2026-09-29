@@ -19,6 +19,8 @@
     "dexie": "^4.4.6",
     "dexie-react-hooks": "^4.4.0",
     "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.11.2",
+    "fflate": "^0.8.3",
     "lucide-react": "^1.48.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

@@ -218,7 +218,7 @@ function buildCover(
   const hRow = COVER.historyHeaderRow;
   const hist = ws.getCell("A25");
   hist.value = "Änderungshistorie";
-  style(hist, { bold: true, size: 12 });
+  style(hist, { bold: true, size: 12, wrap: false });
   const heads: [string, string][] = [
     ["A", "Nr."],
     ["B", "Version"],
@@ -560,8 +560,8 @@ function addLogo(wb: ExcelJS.Workbook, settings?: Settings) {
   const extension = m[1]!.toLowerCase() === "png" ? "png" : "jpeg";
   const id = wb.addImage({ base64: m[2]!, extension });
   const ws = wb.getWorksheet(SHEET.cover);
-  // Right part of the title band; the size keeps the aspect of typical square logos.
-  ws?.addImage(id, { tl: { col: 8.35, row: 0.2 }, ext: { width: 44, height: 44 } });
+  // Top right in rows 1-2 of column I, above the hint text in H3:I4 (square logos).
+  ws?.addImage(id, { tl: { col: 8.82, row: 0.1 }, ext: { width: 30, height: 30 } });
 }
 
 /**

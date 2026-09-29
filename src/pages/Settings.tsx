@@ -20,7 +20,7 @@ import {
   type Settings,
 } from "../domain/scheme";
 import { GOALS, GOAL_EN, GOAL_LABEL } from "../domain/types";
-import { BundleError, parseBundle, SCHEMA_VERSION, type ParsedBundle } from "../io/json";
+import { BundleError, FILE_ACCEPT, readBundleFile, SCHEMA_VERSION, type ParsedBundle } from "../io/json";
 import { formatDate } from "../lib/format";
 
 function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
@@ -131,10 +131,10 @@ export function SettingsPage() {
   }
 
   async function openFile() {
-    const file = await pickFile(".json,application/json");
+    const file = await pickFile(FILE_ACCEPT);
     if (!file) return;
     try {
-      setBundle(await parseBundle(await file.text()));
+      setBundle(await readBundleFile(await file.arrayBuffer()));
     } catch (e) {
       notify(e instanceof BundleError ? e.message : "Die Datei konnte nicht gelesen werden.", "error");
     }
@@ -310,7 +310,7 @@ export function SettingsPage() {
         title="Sichern und teilen"
         description={
           <>
-            Eine Dateiart für alles (.sba.json, Format {SCHEMA_VERSION}). Beim Einlesen wählen Sie, was übernommen wird.
+            Eine Dateiart für alles (.sba, komprimiert, Format {SCHEMA_VERSION}). Ältere .sba.json-Dateien lassen sich weiter einlesen. Beim Einlesen wählen Sie, was übernommen wird.
           </>
         }
       >

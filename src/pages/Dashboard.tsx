@@ -14,7 +14,7 @@ import { repo } from "../db/repo";
 import { allResults, progress } from "../domain/scoring";
 import { ASSET_TYPE_LABEL, STATUS_LABEL, type AssetType, type VersionStatus } from "../domain/types";
 import { versionLabel } from "../domain/versioning";
-import { BundleError, parseBundle, type ParsedBundle } from "../io/json";
+import { BundleError, FILE_ACCEPT, readBundleFile, type ParsedBundle } from "../io/json";
 import { actorName, formatDate } from "../lib/format";
 
 export function Dashboard() {
@@ -38,10 +38,10 @@ export function Dashboard() {
   }, [rows, query, status]);
 
   async function openBundle() {
-    const file = await pickFile(".json,application/json");
+    const file = await pickFile(FILE_ACCEPT);
     if (!file) return;
     try {
-      setBundle(await parseBundle(await file.text()));
+      setBundle(await readBundleFile(await file.arrayBuffer()));
     } catch (e) {
       notify(e instanceof BundleError ? e.message : "Die Datei konnte nicht gelesen werden.", "error");
     }
@@ -64,7 +64,7 @@ export function Dashboard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setXlsxOpen(true)}>
-            Excel importieren
+            Bogen importieren
           </Button>
           <Button onClick={openBundle}>
             Datei einlesen
@@ -95,12 +95,12 @@ export function Dashboard() {
                   Analyse anlegen
                 </Button>
                 <Button onClick={() => setXlsxOpen(true)}>
-                  Excel-Bogen übernehmen
+                  Erhebungsbogen übernehmen
                 </Button>
               </>
             }
           >
-            Legen Sie eine Analyse an oder übernehmen Sie einen ausgefüllten Excel-Erhebungsbogen. Gespeichert wird nur in
+            Legen Sie eine Analyse an oder übernehmen Sie einen ausgefüllten Erhebungsbogen (Excel oder ODS). Gespeichert wird nur in
             diesem Browser.
           </Empty>
         </div>

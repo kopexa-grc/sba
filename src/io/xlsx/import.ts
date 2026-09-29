@@ -71,12 +71,33 @@ export interface LegacyImport {
 
 export class XlsxImportError extends Error {}
 
+/** Format-neutral read access to one sheet; cells are addressed like "D5". */
+export interface SheetReader {
+  /** Displayed text of the cell (cached result for formulas), null if empty. */
+  cell(address: string): string | null;
+  /** Last row that contains data. */
+  rowCount: number;
+}
+
+/** Format-neutral read access to a workbook (XLSX, ODS). */
+export interface WorkbookReader {
+  /** Sheet by name, matched case-insensitively and ignoring surrounding spaces. */
+  sheet(name: string): SheetReader | undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Cell helpers
 
 type CellLike = { value: ExcelJS.CellValue };
 
-function cellText(cell: CellLike | undefined): string | null {
+/** Trims and normalizes non-breaking spaces; empty text becomes null. */
+export function tidyText(text: string | null | undefined): string | null {
+  if (text === null || text === undefined) return null;
+  const out = text.replace(/\u00a0/g, " ").trim();
+  return out === "" ? null : out;
+}
+
+function excelCellText(cell: CellLike | undefined): string | null {
   const v = cell?.value;
   if (v === null || v === undefined) return null;
   let out: string;
@@ -115,9 +136,16 @@ function parseBool(text: string | null): boolean | null {
   return yn === null ? null : yn === "Ja";
 }
 
-function findSheet(wb: ExcelJS.Workbook, name: string): ExcelJS.Worksheet | undefined {
-  const wanted = name.trim().toLowerCase();
-  return wb.worksheets.find((ws) => ws.name.trim().toLowerCase() === wanted);
+/** Adapts an ExcelJS workbook to the format-neutral reader. */
+function excelReader(wb: ExcelJS.Workbook): WorkbookReader {
+  return {
+    sheet(name) {
+      const wanted = name.trim().toLowerCase();
+      const ws = wb.worksheets.find((w) => w.name.trim().toLowerCase() === wanted);
+      if (!ws) return undefined;
+      return { cell: (address) => excelCellText(ws.getCell(address)), rowCount: ws.rowCount };
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -223,17 +251,16 @@ export function readScenarioAt(
 // ---------------------------------------------------------------------------
 // Workbook parsing
 
-function snapshotOf(ws: ExcelJS.Worksheet): SheetSnapshot {
+function snapshotOf(ws: SheetReader): SheetSnapshot {
   const snap: SheetSnapshot = {};
   const last = Math.max(ws.rowCount, 120);
   for (let r = 1; r <= last; r++) {
-    const row = ws.getRow(r);
     const entry: SheetRow = {
-      B: cellText(row.getCell("B")),
-      D: cellText(row.getCell("D")),
-      E: cellText(row.getCell("E")),
-      F: cellText(row.getCell("F")),
-      H: cellText(row.getCell("H")),
+      B: ws.cell(`B${r}`),
+      D: ws.cell(`D${r}`),
+      E: ws.cell(`E${r}`),
+      F: ws.cell(`F${r}`),
+      H: ws.cell(`H${r}`),
     };
     if (entry.B || entry.D || entry.E || entry.F || entry.H) snap[r] = entry;
   }
@@ -300,7 +327,7 @@ function readOverrides(snapshot: SheetSnapshot, headers: Partial<Record<Goal, nu
   return result;
 }
 
-function readCover(ws: ExcelJS.Worksheet | undefined, issues: ImportIssue[]) {
+function readCover(ws: SheetReader | undefined, issues: ImportIssue[]) {
   const meta: Partial<AssetMeta> = {};
   const justifications: Record<Goal, string> = { C: "", I: "", A: "" };
   let versionLabel: string | undefined;
@@ -309,7 +336,7 @@ function readCover(ws: ExcelJS.Worksheet | undefined, issues: ImportIssue[]) {
     issues.push({ severity: "warning", message: "Blatt „Deckblatt“ nicht gefunden – Stammdaten bitte manuell ergänzen." });
     return { meta, justifications, versionLabel, statusText };
   }
-  const get = (addr: string) => clean(cellText(ws.getCell(addr)));
+  const get = (addr: string) => clean(ws.cell(addr));
   const name = get(COVER.name);
   if (name) meta.name = name;
   versionLabel = get(COVER.version) ?? undefined;
@@ -318,13 +345,13 @@ function readCover(ws: ExcelJS.Worksheet | undefined, issues: ImportIssue[]) {
   if (orgUnit) meta.orgUnit = orgUnit;
   const contact = get(COVER.contact);
   if (contact) meta.contact = contact;
-  const pd = parseBool(cellText(ws.getCell(COVER.personalData)));
+  const pd = parseBool(ws.cell(COVER.personalData));
   if (pd !== null) meta.personalData = pd;
-  const scd = parseBool(cellText(ws.getCell(COVER.specialCategoryData)));
+  const scd = parseBool(ws.cell(COVER.specialCategoryData));
   if (scd !== null) meta.specialCategoryData = scd;
 
   for (const goal of GOALS) {
-    const text = cellText(ws.getCell(`F${COVER.summaryRow[goal]}`)) ?? "";
+    const text = ws.cell(`F${COVER.summaryRow[goal]}`) ?? "";
     // The export appends the override note to the justification; strip it again.
     justifications[goal] = text.split(`\n\n${OVERRIDE_LABEL}`)[0]!.trim();
   }
@@ -333,14 +360,14 @@ function readCover(ws: ExcelJS.Worksheet | undefined, issues: ImportIssue[]) {
   let inBlock = false;
   const labels = Object.entries(EXTRA_LABEL) as [keyof typeof EXTRA_LABEL, string][];
   for (let r = 1; r <= ws.rowCount; r++) {
-    const a = cellText(ws.getCell(`A${r}`));
+    const a = ws.cell(`A${r}`);
     if (normalize(a) === normalize(EXTRA_BLOCK_TITLE)) {
       inBlock = true;
       continue;
     }
     if (!inBlock || !a) continue;
     const key = labels.find(([, l]) => normalize(l) === normalize(a))?.[0];
-    const value = cellText(ws.getCell(`D${r}`)) ?? "";
+    const value = ws.cell(`D${r}`) ?? "";
     switch (key) {
       case "type": {
         const t = (Object.entries(ASSET_TYPE_LABEL) as [AssetType, string][]).find(
@@ -371,14 +398,22 @@ export async function parseLegacyXlsx(data: ArrayBuffer | Uint8Array): Promise<L
   } catch {
     throw new XlsxImportError("Die Datei konnte nicht als Excel-Arbeitsmappe (.xlsx) gelesen werden.");
   }
-  const sheet = findSheet(wb, SHEET.assessment);
+  return parseWorkbook(excelReader(wb));
+}
+
+/**
+ * Detection and mapping for any spreadsheet format: finds the questionnaire,
+ * reads answers, cover data and overrides.
+ */
+export function parseWorkbook(book: WorkbookReader): LegacyImport {
+  const sheet = book.sheet(SHEET.assessment);
   if (!sheet) {
     throw new XlsxImportError(
       "Blatt „Anwendung“ nicht gefunden. Ist dies eine Schutzbedarfsanalyse im Format FS_Schutzbedarfsanalyse?",
     );
   }
   const issues: ImportIssue[] = [];
-  const cover = readCover(findSheet(wb, SHEET.cover), issues);
+  const cover = readCover(book.sheet(SHEET.cover), issues);
   const snapshot = snapshotOf(sheet);
   const headers = goalHeaders(snapshot);
   for (const goal of GOALS) {
