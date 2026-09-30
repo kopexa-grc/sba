@@ -6,7 +6,7 @@ name: Kopexa Schutzbedarfsanalyse
 # openCode expects the repository on openCode here; it mirrors github.com/kopexa-grc/sba.
 url: "https://gitlab.opencode.de/kopexa/sba"
 landingURL: "https://schutzbedarf.kopexa.com/"
-softwareVersion: "1.1.1" # x-release-please-version
+softwareVersion: "1.2.0" # x-release-please-version
 releaseDate: "2026-09-30"
 logo: logo.svg
 
