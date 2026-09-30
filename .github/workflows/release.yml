@@ -48,10 +48,21 @@ jobs:
             git push
           fi
 
-      # PRs opened with GITHUB_TOKEN do not start other workflows; run CI on the
-      # release branch explicitly so the release PR shows its checks.
+      # CI runs on PRs opened by a bot wait for approval ("action_required"), and
+      # the release PR needs them for its required checks; approve them here.
       - if: steps.pr.outputs.branch
-        run: gh workflow run deploy.yml --ref "$BRANCH" -R "$GITHUB_REPOSITORY"
+        run: |
+          for _ in $(seq 1 12); do
+            ids=$(gh run list -R "$GITHUB_REPOSITORY" -b "$BRANCH" -e pull_request \
+              --json databaseId,status,conclusion \
+              --jq '.[] | select(.status == "action_required" or .conclusion == "action_required") | .databaseId')
+            if [ -n "$ids" ]; then
+              for id in $ids; do gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve"; done
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "No run waiting for approval."
         env:
           BRANCH: ${{ steps.pr.outputs.branch }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
