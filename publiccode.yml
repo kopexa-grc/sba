@@ -4,7 +4,7 @@ publiccodeYmlVersion: "0.4"
 
 name: Kopexa Schutzbedarfsanalyse
 url: "https://github.com/kopexa-grc/sba"
-landingURL: "https://kopexa-grc.github.io/sba/"
+landingURL: "https://schutzbedarf.kopexa.com/"
 softwareVersion: "1.0.0" # x-release-please-version
 releaseDate: "2026-09-29"
 logo: public/favicon.svg
@@ -53,7 +53,7 @@ description:
       openDesk. Bestehende Erhebungsbögen sowie Asset-Listen aus CSV, XLSX und ODS lassen
       sich importieren; Schwellenwerte des Bewertungsschemas sind je Organisation
       konfigurierbar.
-    documentation: "https://kopexa-grc.github.io/sba/hilfe"
+    documentation: "https://schutzbedarf.kopexa.com/hilfe"
     features:
       - Geführte Schutzbedarfsfeststellung nach BSI-Standard 200-2
       - Maximumprinzip und begründete Übersteuerung

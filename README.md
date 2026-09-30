@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://kopexa-grc.github.io/sba/">
+<a href="https://schutzbedarf.kopexa.com/">
   <img src="public/favicon.svg" width="72" height="72" alt="Kopexa Schutzbedarfsanalyse">
 </a>
 
@@ -9,8 +9,8 @@
 **Protection needs assessment according to BSI IT-Grundschutz 200-2 and ISO/IEC 27001, in the browser.**<br>
 Free, offline, no account, and nothing leaves your device.
 
-[**Open the app**](https://kopexa-grc.github.io/sba/) ·
-[Handbook](https://kopexa-grc.github.io/sba/hilfe) ·
+[**Open the app**](https://schutzbedarf.kopexa.com/) ·
+[Handbook](https://schutzbedarf.kopexa.com/hilfe) ·
 [Sample report (PDF)](docs/screenshots/report.pdf) ·
 [kopexa.com](https://kopexa.com/?utm_source=github&utm_medium=readme&utm_campaign=sba) ·
 [Report an issue](https://github.com/kopexa-grc/sba/issues)
@@ -34,7 +34,7 @@ Free, offline, no account, and nothing leaves your device.
 > Auditoren sie erwarten, und versioniert jede Einstufung mit Änderungsprotokoll. Ergebnis ist ein unterschriftsreifer
 > PDF-Bericht, dazu Excel und ODS für LibreOffice und openDesk. Alles läuft im Browser, auch offline, ohne Konto, und
 > keine Daten verlassen Ihr Gerät. Kostenlos und quelloffen, von [Kopexa](https://kopexa.com/de?utm_source=github&utm_medium=readme&utm_campaign=sba).
-> **[Jetzt öffnen →](https://kopexa-grc.github.io/sba/)**
+> **[Jetzt öffnen →](https://schutzbedarf.kopexa.com/)**
 
 ## Why
 
@@ -189,7 +189,7 @@ Accessibility is a requirement, not a feature. The app targets **WCAG 2.2 AA** a
 
 ### Use it
 
-Open **[kopexa-grc.github.io/sba](https://kopexa-grc.github.io/sba/)**. A guided tour explains the basics on the first
+Open **[schutzbedarf.kopexa.com](https://schutzbedarf.kopexa.com/)**. A guided tour explains the basics on the first
 visit, and "Beispiel ansehen" loads a complete sample analysis. To install it, use "Install app" in Chrome or Edge,
 or "Add to Home Screen" on iOS.
 
