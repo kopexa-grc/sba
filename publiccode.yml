@@ -72,7 +72,7 @@ maintenance:
   type: internal
   contacts:
     - name: Kopexa GmbH
-      email: hello@kopexa.com
+      email: hej@kopexa.com
 
 localisation:
   localisationReady: false

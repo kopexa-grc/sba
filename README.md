@@ -279,17 +279,12 @@ Ideas and requests are welcome in the [issues](https://github.com/kopexa-grc/sba
 
 ## Contributing
 
-Contributions are welcome. Before you start:
-
-- Read [`docs/STYLEGUIDE.md`](docs/STYLEGUIDE.md). The UI is deliberately quiet: no accent borders, no tinted boxes,
-  no decoration without meaning.
-- Code, identifiers and comments are in English. User-facing text is in German.
-- Every change keeps `pnpm typecheck`, `pnpm test` and `pnpm test:e2e` green, including the accessibility checks.
+Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) explains the setup, the checks every change has to
+pass, the design and accessibility rules, and the commit format that drives versioning and the changelog.
 
 ## Security
 
-Please do not report security issues in public issues. Follow the
-[Kopexa security policy](https://kopexa.com/de/legal/security) instead.
+Please do not report security issues in public issues. See [SECURITY.md](SECURITY.md).
 
 ## License
 
