@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/kopexa-grc/sba/compare/v1.1.1...v1.2.0) (2026-09-30)
+
+
+### Features
+
+* Kopexa K as the app logo ([f991a12](https://github.com/kopexa-grc/sba/commit/f991a129addc499012c66ffb78728dfd5c34b606))
+
 ## [1.1.1](https://github.com/kopexa-grc/sba/compare/v1.1.0...v1.1.1) (2026-09-30)
 
 
