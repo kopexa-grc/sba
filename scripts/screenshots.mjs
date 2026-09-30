@@ -130,6 +130,16 @@ await shot("file-menu", { clip: { x: 0, y: 0, width: 760, height: 520 } });
 const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "PDF-Bericht" }).click()]);
 await pdf.saveAs(`${OUT}/report.pdf`);
 
+// Sample audit workbooks of the same version.
+for (const [item, file] of [
+  [/Excel \(\.xlsx\)/, "report.xlsx"],
+  [/\(\.ods\)/, "report.ods"],
+]) {
+  await page.getByRole("menubar").getByRole("menuitem", { name: "Datei" }).click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: item }).click()]);
+  await download.saveAs(`${OUT}/${file}`);
+}
+
 // Second version with a change, then compare.
 await page.getByRole("button", { name: "Neue Version anlegen" }).click();
 await page.getByRole("dialog").getByRole("textbox").fill("Jährliche Überprüfung 2027");

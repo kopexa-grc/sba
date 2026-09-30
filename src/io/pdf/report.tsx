@@ -395,18 +395,15 @@ function selectedOptionText(catalog: Record<Goal, GoalDef>, goal: Goal, id: Scen
 
 function ReasoningPage({ ctx }: { ctx: ReportContext }) {
   const { version, catalog } = ctx;
-  const high = GOALS.map((g) => goalResult(version, g)).filter((r) => r.effective !== null && r.effective >= 2);
+  // All three goals, so a reader sees that "Normal" was assessed and not skipped.
+  const results = GOALS.map((g) => goalResult(version, g));
   const issues = validate(version);
   return (
     <Frame ctx={ctx}>
-      <Text style={[s.h2, { marginTop: 0 }]}>Begründungen für erhöhten Schutzbedarf</Text>
-      {high.length === 0 && (
-        <Text style={s.para}>
-          Für alle Grundwerte ist der Schutzbedarf „Normal“ oder noch offen. Eine gesonderte Begründung ist nicht
-          erforderlich.
-        </Text>
-      )}
-      {high.map((r) => {
+      <Text style={[s.h2, { marginTop: 0 }]}>Begründung je Grundwert</Text>
+      {results.map((r) => {
+        const elevated = r.effective !== null && r.effective >= 2;
+        const justification = version.justifications[r.goal].trim();
         const scenarios = catalog[r.goal].scenarios
           .map((d) => ({ d, a: version.answers[r.goal]?.[d.id], l: scenarioLevel(version.answers[r.goal]?.[d.id]) }))
           .filter((x) => x.l !== null && x.l >= 2);
@@ -418,8 +415,21 @@ function ReasoningPage({ ctx }: { ctx: ReportContext }) {
               </Text>
               <LevelMark level={r.effective} size={9.5} />
             </View>
-            <Text style={s.label}>Begründung</Text>
-            <Text style={s.para}>{version.justifications[r.goal].trim() || "Keine Begründung erfasst."}</Text>
+            {elevated || justification ? (
+              <>
+                <Text style={s.label}>Begründung</Text>
+                <Text style={s.para}>{justification || "Keine Begründung erfasst."}</Text>
+              </>
+            ) : null}
+            {!elevated && !r.override && (
+              <Text style={[s.small, s.para, { marginTop: 4 }]}>
+                {r.effective === null
+                  ? "Noch nicht bewertet."
+                  : r.complete
+                    ? `Alle ${r.total} Szenarien „Normal“ oder nicht zutreffend. Eine Begründung ist bei „Normal“ nicht erforderlich.`
+                    : `${r.answered} von ${r.total} Szenarien bewertet, keines über „Normal“.`}
+              </Text>
+            )}
             {r.override && (
               <View wrap={false}>
                 <Text style={s.label}>
@@ -436,19 +446,16 @@ function ReasoningPage({ ctx }: { ctx: ReportContext }) {
                   <Text style={s.h3}>{d.title}</Text>
                   <LevelMark level={l} />
                 </View>
-                <Text style={s.muted}>{selectedOptionText(catalog, r.goal, d.id, l as Rated)}</Text>
-                {a?.explanation.trim() ? (
-                  <>
-                    <Text style={s.label}>Erläuterung</Text>
-                    <Text>{a.explanation}</Text>
-                  </>
-                ) : null}
+                {/* The assessor's explanation is the statement; the catalog criterion backs it up. */}
+                <Text>{a?.explanation.trim() || "Keine Erläuterung erfasst."}</Text>
                 {a?.notes.trim() ? (
                   <>
                     <Text style={s.label}>Weitere Ausführungen</Text>
                     <Text>{a.notes}</Text>
                   </>
                 ) : null}
+                <Text style={s.label}>Kriterium</Text>
+                <Text style={s.small}>{selectedOptionText(catalog, r.goal, d.id, l as Rated)}</Text>
               </View>
             ))}
           </View>

@@ -162,8 +162,8 @@ it as an app and open `.sba` files by double-click. Works offline once loaded.
 | Format | What it is for |
 | --- | --- |
 | **PDF** | The report to sign: summary, justifications, next steps and measures, a separate sign-off page and an appendix with change log and method. Every page carries a SHA-256 checksum of the version, so pages from different versions cannot be mixed unnoticed. [See a sample →](docs/screenshots/report.pdf) |
-| **Excel (.xlsx)** | Audit workbook in the layout of the reference form, with the original formulas, change log and definitions. |
-| **ODS** | The same workbook as OpenDocument for LibreOffice, Collabora and openDesk. |
+| **Excel (.xlsx)** | Audit workbook in the layout of the reference form, with the original formulas, change log and definitions. [Download a sample →](docs/screenshots/report.xlsx) |
+| **ODS** | The same workbook as OpenDocument for LibreOffice, Collabora and openDesk. [Download a sample →](docs/screenshots/report.ods) |
 | **.sba** | The app's own file format for saving and opening: gzip-compressed, schema-versioned JSON. One analysis, all analyses with settings, or settings only. |
 
 Your organization name and logo, and optionally the consultancy that prepared the report, appear on every report.
