@@ -67,7 +67,7 @@ Radien: 6 px für Controls, 8 px für Container, 4 px für Kleinteile. Nie grö�
 ## 6. Komponenten
 
 ### Button
-- `primary`: Navy-Fläche, weißer Text. Genau einer pro Ansicht.
+- `primary`: Navy-Fläche, weißer Text, Hover `primary-800`, gedrückt `primary-900`. Genau einer pro Ansicht.
 - `secondary`: weiß, 1‑px-Rahmen `line`, Hover `surface`.
 - `ghost`: ohne Rahmen, Hover `surface`. Für Toolbar-Aktionen.
 - `danger`: wie secondary, Text `red-700`. Nur in Bestätigungsdialogen primär.
