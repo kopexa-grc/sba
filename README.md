@@ -13,7 +13,8 @@ Free, offline, no account, and nothing leaves your device.
 [Handbook](https://schutzbedarf.kopexa.com/hilfe) ·
 [Sample report (PDF)](docs/screenshots/report.pdf) ·
 [kopexa.com](https://kopexa.com/?utm_source=github&utm_medium=readme&utm_campaign=sba) ·
-[Report an issue](https://github.com/kopexa-grc/sba/issues)
+[Report an issue](https://github.com/kopexa-grc/sba/issues) ·
+[Mirror on OpenCoDE](https://gitlab.opencode.de/kopexa/sba)
 
 [![CI & Deploy](https://github.com/kopexa-grc/sba/actions/workflows/deploy.yml/badge.svg)](https://github.com/kopexa-grc/sba/actions/workflows/deploy.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-10263e)](LICENSE)

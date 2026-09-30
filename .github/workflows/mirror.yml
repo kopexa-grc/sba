@@ -1,0 +1,44 @@
+name: Mirror to OpenCoDE
+
+# Pushes main and all tags to https://gitlab.opencode.de/kopexa/sba.
+# Needs the secret OPENCODE_TOKEN: a project access token of kopexa/sba on
+# OpenCoDE with role Maintainer and scope write_repository.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+  # Tags from release-please and merges by the Dependabot workflow use
+  # GITHUB_TOKEN and trigger no push run; these catch them.
+  workflow_run:
+    workflows: ["Release", "Dependabot auto-merge"]
+    types: [completed]
+  schedule:
+    - cron: "30 4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Push to OpenCoDE
+        env:
+          TOKEN: ${{ secrets.OPENCODE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Secret OPENCODE_TOKEN is not set."
+            exit 1
+          fi
+          git fetch --tags --force origin
+          git remote add opencode "https://oauth2:${TOKEN}@gitlab.opencode.de/kopexa/sba.git"
+          git push opencode "refs/remotes/origin/main:refs/heads/main"
+          git push opencode --tags
