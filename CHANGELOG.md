@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/kopexa-grc/sba/compare/v1.2.0...v1.2.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* PDF lists every protection goal and puts the explanation first ([dff4812](https://github.com/kopexa-grc/sba/commit/dff48121ffb5dcde8f147f833fe4bc92de1687f4))
+* visible hover on primary buttons ([acd33f6](https://github.com/kopexa-grc/sba/commit/acd33f6531a36708114b6515eb3249d86ae50fca))
+
 ## [1.2.0](https://github.com/kopexa-grc/sba/compare/v1.1.1...v1.2.0) (2026-09-30)
 
 
