@@ -26,11 +26,13 @@ function useOnline() {
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <rect width="64" height="64" rx="14" fill="#10263e" />
-      <rect x="14" y="30" width="9" height="20" rx="2" fill="#10b981" />
-      <rect x="27.5" y="22" width="9" height="28" rx="2" fill="#f59e0b" />
-      <rect x="41" y="14" width="9" height="36" rx="2" fill="#ef4444" />
+    // Kopexa K mark, same drawing as logo.svg.
+    <svg viewBox="0 0 100 100" className={className} aria-hidden>
+      <path
+        fill="#10253d"
+        fillRule="evenodd"
+        d="M15 0H85A15 15 0 0 1 100 15V85A15 15 0 0 1 85 100H15A15 15 0 0 1 0 85V15A15 15 0 0 1 15 0ZM21 13.5H38V44.5L62.4 13.5H82.4L58 44.8L81.9 83.5H61.9L44.5 55.6L38 66V83.5H21Z"
+      />
     </svg>
   );
 }

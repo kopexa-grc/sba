@@ -1,10 +1,13 @@
 <div align="center">
 
 <a href="https://schutzbedarf.kopexa.com/">
-  <img src="public/favicon.svg" width="72" height="72" alt="Kopexa Schutzbedarfsanalyse">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/sba-wordmark-dark.svg">
+    <img src="docs/brand/sba-wordmark-light.svg" alt="Kopexa Schutzbedarfsanalyse" height="56">
+  </picture>
 </a>
 
-# Kopexa Schutzbedarfsanalyse
+<br>
 
 **Protection needs assessment according to BSI IT-Grundschutz 200-2 and ISO/IEC 27001, in the browser.**<br>
 Free, offline, no account, and nothing leaves your device.
