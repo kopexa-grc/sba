@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/kopexa-grc/sba/compare/v1.1.0...v1.1.1) (2026-09-30)
+
+
+### Documentation
+
+* publiccode.yml points to openCode and links app and Kopexa ([97798d8](https://github.com/kopexa-grc/sba/commit/97798d848090456718ab4fe29cb8321e5acb37eb))
+
 ## [1.1.0](https://github.com/kopexa-grc/sba/compare/v1.0.0...v1.1.0) (2026-09-30)
 
 
