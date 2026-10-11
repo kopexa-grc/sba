@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/kopexa-grc/sba/compare/v1.2.1...v1.3.0) (2026-10-11)
+
+
+### Features
+
+* add Rybbit analytics to all pages ([abe7313](https://github.com/kopexa-grc/sba/commit/abe7313ff36683fd1bfacd3c62ee048d2e65134d))
+
 ## [1.2.1](https://github.com/kopexa-grc/sba/compare/v1.2.0...v1.2.1) (2026-09-30)
 
 
