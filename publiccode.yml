@@ -7,7 +7,7 @@ name: Kopexa Schutzbedarfsanalyse
 url: "https://gitlab.opencode.de/kopexa/sba"
 landingURL: "https://schutzbedarf.kopexa.com/"
 softwareVersion: "1.3.0" # x-release-please-version
-releaseDate: "2026-09-30"
+releaseDate: "2026-10-11"
 logo: logo.svg
 
 platforms:
