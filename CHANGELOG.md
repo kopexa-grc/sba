@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/kopexa-grc/sba/compare/v1.3.0...v1.3.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* **deps:** bump the dependencies group with 16 updates ([#10](https://github.com/kopexa-grc/sba/issues/10)) ([3c5a9a1](https://github.com/kopexa-grc/sba/commit/3c5a9a192c20f613b6fa033670dc01f25af9464f))
+
 ## [1.3.0](https://github.com/kopexa-grc/sba/compare/v1.2.1...v1.3.0) (2026-10-11)
 
 
